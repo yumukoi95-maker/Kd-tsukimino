@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Teacher Daily Schedule Builder V8.0</title>
+  <style>
+    :root {
+      --bg-app: #0f172a;
+      --paper-bg: #fdfdfb;
+      --ink: #1e293b;
+      --hand-blue: #1d4ed8;
+      --border-strong: #111827;
+      --border-mid: #475569;
+      --border-soft: #94a3b8;
+      --hdr-seasonal: #78716c;
+      --hdr-kindy: #3f3f46;
+      --hdr-elem: #27272a;
+      --sub-hdr: #d6d3d1;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg-app);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding-bottom: 84px;
+      overflow-x: hidden;
+    }
+
+    /* Handwritten Marker Style */
+    .marker-mode .slot-val,
+    .marker-mode .hand-val {
+      font-family: "Comic Sans MS", "Bradley Hand", "Chalkboard SE", "Segoe Print", cursive, sans-serif;
+      font-weight: 700;
+      color: var(--hand-blue);
+      letter-spacing: 0.2px;
+    }
+
+    .digital-mode .slot-val,
+    .digital-mode .hand-val {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    /* TOP CONTROL BAR */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid #334155;
+      padding: 8px 12px;
+      color: #f8fafc;
+    }
+
+    .top-bar-inner {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: #f59e0b;
+      color: #0f172a;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-ok {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      font-weight: 700;
+    }
+
+    .badge-warn {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(239, 68, 68, 0.25);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      font-weight: 700;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn {
+      border: 1px solid #475569;
+      background: #1e293b;
+      color: #f1f5f9;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.12s ease;
+    }
+
+    .btn:hover {
+      background: #334155;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-amber {
+      background: #f59e0b;
+      color: #0f172a;
+      border-color: #fbbf24;
+       font-weight: 800;
+    }
+    .btn-amber:hover { background: #fbbf24; }
+
+    .btn-emerald {
+      background: #059669;
+      color: #ffffff;
+      border-color: #10b981;
+    }
+    .btn-emerald:hover { background: #10b981; }
+
+    .btn-indigo {
+      background: #4f46e5;
+      color: #ffffff;
+      border-color: #6366f1;
+    }
+    .btn-indigo:hover { background: #6366f1; }
+
+    .btn-camera {
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      color: #ffffff;
+      border-color: #f472b6;
+      font-weight: 800;
+      box-shadow: 0 2px 8px rgba(236, 72, 153, 0.35);
+    }
+    .btn-camera:hover { opacity: 0.95; }
+
+    .btn-danger {
+      background: rgba(127, 29, 29, 0.7);
+      color: #fecaca;
+      border-color: #dc2626;
+    }
+
+    .mode-switch {
+      display: inline-flex;
+      background: #020617;
+      padding: 2px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+    }
+
+    .mode-switch button {
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .mode-switch button.active {
+      background: #f59e0b;
+      color: #0f172a;
+    }
+
+    /* SECOND BAR: QUICK TEACHER SPOTLIGHT */
+    .sub-bar {
+      max-width: 1600px;
+      margin: 6px auto 0;
+      padding-top: 6px;
+      border-top: 1px solid rgba(51, 65, 85, 0.7);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .t-chip {
+      border: 1px solid #475569;
+      background: #1e293b;
+      color: #e2e8f0;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .t-chip.active-hl {
+      background: #fde047;
+      color: #0f172a;
+      border-color: #facc15;
+      box-shadow: 0 0 0 2px #ca8a04;
+    }
+
+    /* MAIN SHEET WRAPPER */
+    .workspace {
+      max-width: 1600px;
+      margin: 12px auto;
+      padding: 0 8px;
+    }
+
+    .paper-scroll {
+      width: 100%;
+      overflow-x: auto;
+      padding-bottom: 12px;
+    }
+
+    .paper-sheet {
+      width: 1460px;
+      min-width: 1460px;
+      margin: 0 auto;
+      background: var(--paper-bg);
+      color: var(--ink);
+      border: 2.5px solid var(--border-strong);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55);
+      display: grid;
+      grid-template-columns: 335px 295px 305px 525px;
+      font-size: 11px;
+      line-height: 1.15;
+      user-select: none;
+      transform-origin: top left;
+    }
+
+    /* SCREENSHOT / CAMERA FULL-SHEET PREVIEW OVERLAY */
+    body.screenshot-mode {
+      background: #000000 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      overflow-x: hidden;
+    }
+
+    body.screenshot-mode .top-bar,
+    body.screenshot-mode .mobile-nav,
+    body.screenshot-mode #mobileViewContainer {
+      display: none !important;
+    }
+
+    body.screenshot-mode #desktopSheetWrapper {
+      display: block !important;
+      max-width: 100vw !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    body.screenshot-mode .paper-scroll {
+      overflow: hidden !important;
+      padding: 0 !important;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    /* Floating camera controls in Screenshot Mode */
+    .camera-hud {
+      display: none;
+      position: fixed;
+      bottom: 14px;
+      right: 14px;
+      z-index: 200;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid #475569;
+      border-radius: 999px;
+      padding: 6px 12px;
+      gap: 8px;
+      align-items: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+    }
+
+    body.screenshot-mode .camera-hud {
+      display: inline-flex;
+    }
+
+    body.screenshot-mode.hide-hud .camera-hud {
+      opacity: 0.08;
+    }
+
+    /* Hide dropdown carets inside Screenshot Mode for clean paper look */
+    body.screenshot-mode .slot-caret {
+      display: none !important;
+    }
+
+    /* TABLE & CELL BORDERS */
+    .col-pane {
+      border-right: 2px solid var(--border-strong);
+      display: flex;
+      flex-direction: column;
+    }
+    .col-pane:last-child {
+      border-right: none;
+    }
+
+    .col-banner {
+      height: 36px;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 21px;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 2px solid var(--border-strong);
+      position: relative;
+    }
+    .banner-seasonal { background: var(--hdr-seasonal); }
+    .banner-kindy { background: var(--hdr-kindy); }
+    .banner-elem { background: var(--hdr-elem); }
+
+    .banner-tag {
+      position: absolute;
+      right: 6px;
+      top: 6px;
+      font-size: 9px;
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.35);
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    /* INTERACTIVE SLOT BOX */
+    .slot-box {
+      position: relative;
+      min-height: 22px;
+      padding: 2px 14px 2px 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      cursor: pointer;
+      background: transparent;
+      transition: background 0.1s ease;
+      overflow: hidden;
+    }
+
+    .slot-box:hover {
+      background: rgba(245, 158, 11, 0.14);
+    }
+
+    .slot-box.slot-empty::before {
+      content: attr(data-placeholder);
+      color: #cbd5e1;
+      font-size: 9px;
+      font-weight: 500;
+      font-family: sans-serif;
+    }
+
+    .slot-caret {
+      position: absolute;
+      right: 2px;
+      bottom: 1px;
+      font-size: 8px;
+      color: #94a3b8;
+      pointer-events: none;
+    }
+
+    .slot-val {
+      font-size: 13px;
+      line-height: 1.1;
+      word-break: break-word;
+    }
+
+    .slot-arrow {
+      font-size: 16px !important;
+      font-weight: 900 !important;
+      color: #334155 !important;
+    }
+
+    /* Highlighted Teacher & Conflict States */
+    .hl-match {
+      background: #fef08a !important;
+      box-shadow: inset 0 0 0 2px #ca8a04 !important;
+    }
+
+    .conflict-cell {
+      background: #fee2e2 !important;
+      box-shadow: inset 0 0 0 2px #dc2626 !important;
+    }
+
+    .locked-continuing {
+      background: rgba(219, 234, 254, 0.32);
+    }
+
+    /* SCHEDULE ROW BLOCK */
+    .sched-block {
+      border-bottom: 1.5px solid var(--border-mid);
+    }
+
+    .sched-hdr {
+      background: var(--sub-hdr);
+      border-bottom: 1px solid var(--border-mid);
+      padding: 2px 5px;
+      font-size: 10px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      min-height: 18px;
+    }
+
+    .la-subhdr {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: #f5f5f4;
+      border-bottom: 1px solid var(--border-soft);
+      font-size: 8px;
+      font-weight: 700;
+      color: #64748b;
+      text-align: center;
+    }
+    .la-subhdr > div:first-child {
+      border-right: 1px solid var(--border-mid);
+    }
+
+    .la-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 24px;
+    }
+    .la-grid > div:first-child {
+      border-right: 1px solid var(--border-mid);
+    }
+
+    /* STAFF CARDS IN LEFT COLUMN */
+    .staff-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-bottom: 2px solid var(--border-strong);
+    }
+
+    .staff-card {
+      border-right: 1px solid var(--border-mid);
+      border-bottom: 1px solid var(--border-mid);
+      padding: 3px;
+      font-size: 9.5px;
+    }
+    .staff-card:nth-child(3n) {
+      border-right: none;
+    }
+
+    .staff-line {
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #cbd5e1;
+      min-height: 17px;
+    }
+    .staff-line:last-child {
+      border-bottom: none;
+    }
+
+    .staff-lbl {
+      font-size: 8.5px;
+      font-weight: 700;
+      color: #475569;
+      width: 34px;
+      flex-shrink: 0;
+    }
+
+    /* DAY PILLS */
+    .day-pill {
+      padding: 1px 5px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 800;
+      border: 1.5px solid transparent;
+    }
+    .day-pill.active {
+      border-color: #111827;
+      background: #fde68a;
+    }
+
+    /* MOBILE PHONE VIEW */
+    .mobile-container {
+      display: none;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 8px;
+    }
+
+    .m-card {
+      background: #ffffff;
+      border-radius: 12px;
+      border: 2px solid #cbd5e1;
+      margin-bottom: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .m-card-hdr {
+      background: #1e293b;
+      color: #ffffff;
+      padding: 8px 12px;
+      font-weight: 800;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* BOTTOM NAVIGATION FOR PHONE */
+    .mobile-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 70;
+      background: #0f172a;
+      border-top: 1px solid #334155;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      height: 60px;
+    }
+
+    .m-nav-btn {
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      gap: 2px;
+      cursor: pointer;
+    }
+
+    .m-nav-btn.active {
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.12);
+    }
+
+    /* SMART BOTTOM-SHEET PICKER MODAL */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(2, 6, 23, 0.72);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    @media (min-width: 640px) {
+      .modal-backdrop {
+        align-items: center;
+      }
+    }
+
+    .picker-sheet {
+      width: 100%;
+      max-width: 480px;
+      max-height: 88vh;
+      background: #ffffff;
+      border-radius: 18px 18px 0 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 -10px 35px rgba(0, 0, 0, 0.45);
+    }
+
+    @media (min-width: 640px) {
+      .picker-sheet {
+        border-radius: 16px;
+      }
+    }
+
+    .picker-hdr {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .picker-body {
+      padding: 12px 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .opt-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .opt-btn {
+      padding: 10px 8px;
+      border-radius: 10px;
+      border: 2px solid #cbd5e1;
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 800;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      transition: all 0.1s ease;
+    }
+
+    .opt-btn:hover:not(:disabled) {
+      border-color: #f59e0b;
+      background: #fffbeb;
+    }
+
+    .opt-btn.selected {
+      border-color: #2563eb;
+      background: #dbeafe;
+      color: #1e3a8a;
+    }
+
+    .opt-btn:disabled {
+      opacity: 0.48;
+      background: #fef2f2;
+      border-color: #fca5a5;
+      color: #991b1b;
+      cursor: not-allowed;
+    }
+
+    /* PRINT MEDIA RULES */
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 4mm;
+      }
+      body {
+        background: #ffffff !important;
+        padding: 0 !important;
+      }
+      .no-print,
+      .top-bar,
+      .mobile-nav,
+      .camera-hud,
+      #mobileViewContainer {
+        display: none !important;
+      }
+      #desktopSheetWrapper {
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .paper-scroll {
+        overflow: visible !important;
+      }
+      .paper-sheet {
+        width: 100% !important;
+        min-width: 0 !important;
+        box-shadow: none !important;
+        transform: none !important;
+      }
+      .slot-caret {
+        display: none !important;
+      }
+      .slot-box.slot-empty::before {
+        content: "" !important;
+      }
+    }
+  </style>
+</head>
+<body class="marker-mode">
+
+  <!-- FLOATING CAMERA / SCREENSHOT BAR (Visible only inside Screenshot Mode) -->
+  <div class="camera-hud no-print" id="cameraHud">
+    <span style="color:#f8fafc; font-size:11px; font-weight:800;">📸 Full-Paper Camera View</span>
+    <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="toggleHudOpacity()">👁️ Hide Bar</button>
+    <button class="btn btn-emerald" style="padding:4px 8px; font-size:11px;" onclick="window.print()">🖨️ Print / Save PDF</button>
+    <button class="btn btn-danger" style="padding:4px 10px; font-size:11px;" onclick="toggleScreenshotMode(false)">✖ Exit Camera</button>
+  </div>
+
+  <!-- TOP BAR -->
+  <header class="top-bar no-print">
+    <div class="top-bar-inner">
+      <div class="brand-box">
+        <div class="brand-icon">📅</div>
+        <div>
+          <div class="brand-title">
+            <span>Teacher Daily Schedule Builder</span>
+            <span id="conflictStatusBadge" class="badge-ok">✓ 0 Overlaps</span>
+          </div>
+          <div class="brand-sub">
+            1. Set Prime & Hallo first • 2. Tap 🎲 Auto-Fill (Leads only, Assists blank, Kindy 16:15–17:00 & 17:00–17:50 locked)
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <!-- Layout Switch -->
+        <div class="mode-switch">
+          <button id="btnModeSheet" class="active" onclick="setLayoutMode('sheet')">🖥️ Full Sheet</button>
+          <button id="btnModePhone" onclick="setLayoutMode('phone')">📱 Phone Cards</button>
+        </div>
+
+        <!-- Screenshot / Camera Full-Paper Preview Button -->
+        <button class="btn btn-camera" onclick="toggleScreenshotMode(true)" title="Fit entire 4-column schedule onto screen for instant screenshot">
+          📸 Screenshot View
+        </button>
+
+        <!-- Auto-Fill Leads (Respects Pre-Set Prime/Hallo, Leaves Assist Blank, Locks Kindy Blocks) -->
+        <button class="btn btn-indigo" onclick="autoFillSchedule()">
+          🎲 Auto-Fill Leads
+        </button>
+
+        <!-- Core Shifts 11-20 & Lunch 12-13 -->
+        <button class="btn" onclick="applyCoreShiftsOnly()">
+          ⚡ Core Shifts (11-20)
+        </button>
+
+        <!-- Load 8/27 Sample -->
+        <button class="btn" onclick="loadSample827()">
+          📋 8/27 Sample
+        </button>
+
+        <!-- Blank All -->
+        <button class="btn btn-danger" onclick="blankAllConfirm()">
+          🗑️ Blank All
+        </button>
+
+        <!-- Font Style -->
+        <button class="btn" id="btnFontMode" onclick="toggleFontStyle()">
+          ✍️ Marker: ON
+        </button>
+
+        <!-- Print -->
+        <button class="btn btn-emerald" onclick="window.print()">
+          🖨️ Print A4
+        </button>
+      </div>
+    </div>
+
+    <!-- Second Sub-bar: Teacher Spotlight & Quick Pre-Set Info -->
+    <div class="sub-bar">
+      <div class="chip-group">
+        <span style="color:#94a3b8; font-weight:700;">🔍 Spotlight Teacher:</span>
+        <div id="spotlightChips" class="chip-group"></div>
+        <button id="btnClearSpotlight" class="t-chip" style="display:none; background:#dc2626; color:#fff;" onclick="setSpotlight(null)">✕ Clear</button>
+      </div>
+      <div style="color:#cbd5e1; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span>⭐ <b>Pre-Auto-Fill Check:</b> Prime (<span id="topPrimeSummary" style="color:#fde047; font-weight:800;">Not set</span>) | Hallo (<span id="topHalloSummary" style="color:#fde047; font-weight:800;">Koi • Not set</span>)</span>
+        <button class="t-chip" style="border-color:#f59e0b; color:#fde047;" onclick="openPresetModal()">⚙️ Presets</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- DESKTOP FULL-SHEET VIEW -->
+  <div id="desktopSheetWrapper" class="workspace">
+    <div class="paper-scroll" id="paperScrollBox">
+      <div id="paperSheet" class="paper-sheet">
+
+        <!-- ================= COLUMN 1: LEFT STAFF, BUS & CLEANING ================= -->
+        <div class="col-pane">
+          <!-- Date & Day of Week Header -->
+          <div style="display:grid; grid-template-columns: 120px 1fr; border-bottom: 2px solid var(--border-strong); height: 60px;">
+            <div style="border-right: 2px solid var(--border-strong); display:flex; align-items:center; justify-content:center; gap:2px; padding:4px;">
+              <div id="slot_meta_month" class="slot-box" style="width:44px; height:42px; font-size:24px;" data-placeholder="MM" onclick="openSlotPicker('meta_month')"></div>
+              <span style="font-size:28px; font-weight:900;">/</span>
+              <div id="slot_meta_day" class="slot-box" style="width:44px; height:42px; font-size:24px;" data-placeholder="DD" onclick="openSlotPicker('meta_day')"></div>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:13px; font-weight:800;">
+              <div style="display:flex; gap:4px;">
+                <span class="day-pill" data-day="Mon" onclick="selectWeekday('Mon')">Mon</span> /
+                <span class="day-pill" data-day="Tue" onclick="selectWeekday('Tue')">Tue</span> /
+              </div>
+              <div style="display:flex; gap:4px;">
+                <span class="day-pill" data-day="Wed" onclick="selectWeekday('Wed')">Wed</span> /
+                <span class="day-pill" data-day="Thu" onclick="selectWeekday('Thu')">Thu</span> /
+                <span class="day-pill" data-day="Fri" onclick="selectWeekday('Fri')">Fri</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3x3 Staff Shift Cards -->
+          <div id="staffGridContainer" class="staff-grid"></div>
+
+          <!-- Notice: Important Updates / Trial / Parent Interviews -->
+          <div style="border-bottom: 2px solid var(--border-strong); flex:1; display:flex; flex-direction:column; min-height:110px;">
+            <div class="sched-hdr">
+              <span style="text-decoration:underline;">Notice: Important Updates / Trial / Parent Interviews :</span>
+            </div>
+            <div id="slot_notice_box" class="slot-box" style="flex:1; align-items:flex-start; justify-content:flex-start; text-align:left; padding:6px;" data-placeholder="Tap to add trial kids / parent interviews..." onclick="openSlotPicker('notice_box')"></div>
+          </div>
+
+          <!-- Bus Driving & Allergies -->
+          <div style="display:grid; grid-template-columns: 1fr 64px 64px; border-bottom: 2px solid var(--border-strong); min-height:95px;">
+            <div style="border-right:1px solid var(--border-mid); display:flex; flex-direction:column;">
+              <div class="sched-hdr">Bus Driving &amp; Bus Staff</div>
+              <div id="slot_bus_box" class="slot-box" style="flex:1; align-items:flex-start; justify-content:flex-start; text-align:left; padding:5px;" data-placeholder="Tap to set bus staff & routes..." onclick="openSlotPicker('bus_box')"></div>
+            </div>
+            <div style="border-right:1px solid var(--border-mid); display:flex; flex-direction:column;">
+              <div class="sched-hdr" style="font-size:8.5px; justify-content:center;">Kindy Allergy</div>
+              <div id="slot_allergy_kindy" class="slot-box" style="flex:1;" data-placeholder="—" onclick="openSlotPicker('allergy_kindy')"></div>
+            </div>
+            <div style="display:flex; flex-direction:column;">
+              <div class="sched-hdr" style="font-size:8.5px; justify-content:center;">Ele. Allergy</div>
+              <div id="slot_allergy_elem" class="slot-box" style="flex:1;" data-placeholder="—" onclick="openSlotPicker('allergy_elem')"></div>
+            </div>
+          </div>
+
+          <!-- Cleaning Duties & Guidelines -->
+          <div style="display:grid; grid-template-columns: 118px 1fr;">
+            <div style="border-right:1px solid var(--border-mid);">
+              <div class="sched-hdr" style="justify-content:center;">Cleaning Duties</div>
+              <div id="cleaningGridContainer" style="display:grid; grid-template-columns:1fr 1fr;"></div>
+            </div>
+            <div style="display:flex; flex-direction:column;">
+              <div class="sched-hdr" style="justify-content:center;">Cleaning Guidelines</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; flex:1; font-size:7.5px; padding:4px; gap:4px; color:#334155;">
+                <div style="border-right:1px solid #cbd5e1; padding-right:4px;">
+                  <div style="font-weight:800; text-decoration:underline; text-align:center; margin-bottom:3px;">Kindy &amp; Ele. Room Tasks</div>
+                  <p style="margin:2px 0;">• Put Away Materials</p>
+                  <p style="margin:2px 0;">• Wipe Tables &amp; Lockers</p>
+                  <p style="margin:2px 0;">• Sweep / Wipe / Vacuum Floors</p>
+                  <p style="margin:2px 0;">• Wipe Whiteboard</p>
+                  <p style="margin:2px 0;">• Wipe Mirrors and Windows</p>
+                  <p style="margin:2px 0;">• Empty Trash Bins</p>
+                </div>
+                <div>
+                  <div style="font-weight:800; text-decoration:underline; text-align:center; margin-bottom:3px;">Lobby Cleaning Points</div>
+                  <p style="margin:2px 0;">• Sweep/Wipe Floors &amp; Trash</p>
+                  <p style="margin:2px 0;">• Put away Student Roster</p>
+                  <p style="margin:2px 0;">• Tidy up display items</p>
+                  <div style="font-weight:800; text-decoration:underline; text-align:center; margin:4px 0 2px;">Bathroom Area Cleaning</div>
+                  <p style="margin:1px 0;">• Wipe Toilets / Sinks / Mirrors</p>
+                  <p style="margin:1px 0;">• Empty Trash / Refill Paper</p>
+                  <p style="margin:1px 0;">• Scrub / Mop Floors</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= COLUMN 2: SEASONAL (MANUAL ONLY) ================= -->
+        <div class="col-pane">
+          <div class="col-banner banner-seasonal">
+            <span>Seasonal</span>
+            <span class="banner-tag">✍️ Manual Only</span>
+          </div>
+          <div id="seasonalRowsContainer"></div>
+
+          <!-- Seasonal School Notes & Seasonal HALLO Notes -->
+          <div style="flex:1; display:flex; flex-direction:column; justify-content:space-between;">
+            <div style="border-bottom:1.5px solid var(--border-mid); min-height:95px; display:flex; flex-direction:column;">
+              <div class="sched-hdr" style="justify-content:center; text-decoration:underline;">Seasonal School Notes:</div>
+              <div id="slot_seasonal_notes" class="slot-box" style="flex:1;" data-placeholder="Tap to add Seasonal notes..." onclick="openSlotPicker('seasonal_notes')"></div>
+            </div>
+            <div style="min-height:125px; display:flex; flex-direction:column; flex:1;">
+              <div class="sched-hdr" style="justify-content:center; text-decoration:underline;">Seasonal HALLO Notes:</div>
+              <div id="slot_seasonal_hallo_notes" class="slot-box" style="flex:1; align-items:flex-start; justify-content:flex-start; text-align:left; padding:6px;" data-placeholder="e.g. 14 ~ 16 Kentaro, Kyoma..." onclick="openSlotPicker('seasonal_hallo_notes')"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= COLUMN 3: KINDY ================= -->
+        <div class="col-pane">
+          <div class="col-banner banner-kindy">
+            <span>KINDY</span>
+            <span class="banner-tag">🔒 16:15–17:00 &amp; 17:00–17:50</span>
+          </div>
+          <!-- Blank top spacer matching paper template -->
+          <div style="height:40px; border-bottom:1.5px solid var(--border-mid);"></div>
+          <div id="kindyRowsContainer" style="flex:1; display:flex; flex-direction:column;"></div>
+        </div>
+
+        <!-- ================= COLUMN 4: ELEMENTARY ================= -->
+        <div class="col-pane">
+          <div class="col-banner banner-elem">
+            <span>Elementary</span>
+            <span class="banner-tag">Assist = Manual</span>
+          </div>
+          <div id="elemTopRowsContainer"></div>
+
+          <!-- 16:15 Split Room Block: Room AB vs Room C -->
+          <div class="sched-block">
+            <div style="display:grid; grid-template-columns:1fr 1fr; background:var(--sub-hdr); border-bottom:1px solid var(--border-mid); font-size:9.5px; font-weight:800;">
+              <div style="border-right:1px solid var(--border-mid); padding:2px 4px; display:flex; align-items:center; justify-content:space-between;">
+                <span>16:15 Room AB:</span>
+                <div id="slot_elem_1615_ab_act" class="slot-box" style="min-height:16px; padding:0 12px 0 4px; background:#fff; border:1px solid #94a3b8; border-radius:3px; min-width:85px;" data-placeholder="Pick Activity" onclick="openSlotPicker('elem_1615_ab_act')"></div>
+              </div>
+              <div style="padding:2px 4px; display:flex; align-items:center; justify-content:space-between;">
+                <span>16:15 Room C:</span>
+                <div id="slot_elem_1615_c_act" class="slot-box" style="min-height:16px; padding:0 12px 0 4px; background:#fff; border:1px solid #94a3b8; border-radius:3px; min-width:85px;" data-placeholder="Pick Activity" onclick="openSlotPicker('elem_1615_c_act')"></div>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; background:#f5f5f4; border-bottom:1px solid var(--border-soft); font-size:8px; font-weight:700; text-align:center; color:#64748b;">
+              <div style="border-right:1px solid var(--border-soft);">Lead</div>
+              <div style="border-right:1px solid var(--border-mid);">Assist (Manual)</div>
+              <div style="border-right:1px solid var(--border-soft);">Lead</div>
+              <div>Assist (Manual)</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; min-height:28px;">
+              <div id="slot_elem_1615_ab_lead" class="slot-box" style="border-right:1px solid var(--border-soft);" data-placeholder="Lead" onclick="openSlotPicker('elem_1615_ab_lead')"></div>
+              <div id="slot_elem_1615_ab_assist" class="slot-box" style="border-right:1px solid var(--border-mid);" data-placeholder="Assist" onclick="openSlotPicker('elem_1615_ab_assist')"></div>
+              <div id="slot_elem_1615_c_lead" class="slot-box" style="border-right:1px solid var(--border-soft);" data-placeholder="Lead" onclick="openSlotPicker('elem_1615_c_lead')"></div>
+              <div id="slot_elem_1615_c_assist" class="slot-box" data-placeholder="Assist" onclick="openSlotPicker('elem_1615_c_assist')"></div>
+            </div>
+          </div>
+
+          <!-- 16:40 Clean Up Time (Split AB / C) -->
+          <div class="sched-block">
+            <div style="display:grid; grid-template-columns:1fr 1fr; background:var(--sub-hdr); border-bottom:1px solid var(--border-mid); font-size:9.5px; font-weight:800; padding:1px 4px;">
+              <div style="border-right:1px solid var(--border-mid);">16:40 Clean Up Time (AB)</div>
+              <div style="padding-left:4px;">16:40 Clean Up Time (C)</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; min-height:22px;">
+              <div id="slot_elem_1640_ab_lead" class="slot-box" style="border-right:1px solid var(--border-soft);" data-placeholder="Lead" onclick="openSlotPicker('elem_1640_ab_lead')"></div>
+              <div id="slot_elem_1640_ab_assist" class="slot-box" style="border-right:1px solid var(--border-mid);" data-placeholder="Assist" onclick="openSlotPicker('elem_1640_ab_assist')"></div>
+              <div id="slot_elem_1640_c_lead" class="slot-box" style="border-right:1px solid var(--border-soft);" data-placeholder="Lead" onclick="openSlotPicker('elem_1640_c_lead')"></div>
+              <div id="slot_elem_1640_c_assist" class="slot-box" data-placeholder="Assist" onclick="openSlotPicker('elem_1640_c_assist')"></div>
+            </div>
+          </div>
+
+          <!-- 16:45 2nd Snack / Group Activity -->
+          <div class="sched-block">
+            <div class="sched-hdr">16:45 2nd Snack / Group Activity</div>
+            <div class="la-grid">
+              <div id="slot_elem_1645_lead" class="slot-box" data-placeholder="Lead" onclick="openSlotPicker('elem_1645_lead')"></div>
+              <div id="slot_elem_1645_assist" class="slot-box" data-placeholder="Assist" onclick="openSlotPicker('elem_1645_assist')"></div>
+            </div>
+          </div>
+
+          <!-- 17:00 Class Separation + Right Side Prime & Hallo Pre-Set Cards -->
+          <div style="display:grid; grid-template-columns: 1fr 112px; flex:1;">
+            <!-- Left Sub-Column: 17:00 Matrix + 18:00, 18:05, 18:15 -->
+            <div style="border-right:1.5px solid var(--border-strong); display:flex; flex-direction:column;">
+              <div class="sched-hdr" style="justify-content:center;">17:00 Class 1 Language Development</div>
+              <div style="display:grid; grid-template-columns:58px 1fr 1fr 1fr; border-bottom:1.5px solid var(--border-mid); text-align:center; font-size:9px;">
+                <div style="border-right:1px solid var(--border-mid); background:#e7e5e4; font-weight:800; padding:3px 2px;">
+                  17:00<br><span style="font-size:7.5px;">Class Sep.</span>
+                </div>
+                <div style="border-right:1px solid var(--border-mid); background:#f5f5f4; font-weight:800; display:flex; align-items:center; justify-content:center;">Beginner</div>
+                <div style="border-right:1px solid var(--border-mid); background:#f5f5f4; font-weight:800; display:flex; align-items:center; justify-content:center;">Intermediate</div>
+                <div style="background:#f5f5f4; font-weight:800; display:flex; align-items:center; justify-content:center;">Upper Int.</div>
+
+                <!-- 17:05 / 17:20 / 17:30 Curriculum matrix -->
+                <div style="border-right:1px solid var(--border-mid); border-top:1px solid var(--border-soft); padding:4px 2px; font-weight:800; background:#fafaf9;">
+                  <div>17:05</div>
+                  <div style="margin:6px 0;">17:20</div>
+                  <div>17:30</div>
+                </div>
+                <div style="border-right:1px solid var(--border-mid); border-top:1px solid var(--border-soft); padding:4px 2px; font-size:8px; color:#475569;">
+                  <div>Phonics Chant</div>
+                  <div style="margin:5px 0;">Vocab &amp; Phrases</div>
+                  <div>Worksheet Time</div>
+                </div>
+                <div style="border-right:1px solid var(--border-mid); border-top:1px solid var(--border-soft); padding:4px 2px; font-size:8px; color:#475569;">
+                  <div>Phonics Chant</div>
+                  <div style="margin:5px 0;">Vocab &amp; Phrases</div>
+                  <div>Worksheet Time</div>
+                </div>
+                <div style="border-top:1px solid var(--border-soft); padding:4px 2px; font-size:8px; color:#475569;">
+                  <div>Phonics Lesson</div>
+                  <div style="margin:5px 0;">Vocab &amp; Phrases</div>
+                  <div>Worksheet Time</div>
+                </div>
+
+                <!-- Teacher row for 17:00 Separation -->
+                <div style="border-right:1px solid var(--border-mid); border-top:1px solid var(--border-mid); background:#e7e5e4; font-weight:800; display:flex; align-items:center; justify-content:center; font-size:8px;">
+                  Teacher
+                </div>
+                <div id="slot_elem_1700_beg" class="slot-box" style="border-right:1px solid var(--border-mid); border-top:1px solid var(--border-mid);" data-placeholder="Beg. Lead" onclick="openSlotPicker('elem_1700_beg')"></div>
+                <div id="slot_elem_1700_int" class="slot-box" style="border-right:1px solid var(--border-mid); border-top:1px solid var(--border-mid);" data-placeholder="Int. Lead" onclick="openSlotPicker('elem_1700_int')"></div>
+                <div id="slot_elem_1
