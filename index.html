@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Teacher Daily Schedule Builder V8.0</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>Teacher Daily Schedule Builder V10.0</title>
   <style>
     :root {
       --bg-app: #0f172a;
@@ -160,7 +160,7 @@
       background: #f59e0b;
       color: #0f172a;
       border-color: #fbbf24;
-       font-weight: 800;
+      font-weight: 800;
     }
     .btn-amber:hover { background: #fbbf24; }
 
@@ -329,6 +329,7 @@
       gap: 8px;
       align-items: center;
       box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+      transition: opacity 0.2s ease;
     }
 
     body.screenshot-mode .camera-hud {
@@ -339,9 +340,13 @@
       opacity: 0.08;
     }
 
-    /* Hide dropdown carets inside Screenshot Mode for clean paper look */
+    /* Hide dropdown carets & placeholders inside Screenshot Mode for clean paper look */
     body.screenshot-mode .slot-caret {
       display: none !important;
+    }
+
+    body.screenshot-mode .slot-box.slot-empty::before {
+      content: "" !important;
     }
 
     /* TABLE & CELL BORDERS */
@@ -694,6 +699,30 @@
       cursor: not-allowed;
     }
 
+    /* TOAST BANNER (No browser alert/confirm) */
+    .toast-banner {
+      position: fixed;
+      bottom: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 250;
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1.5px solid #f59e0b;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toast-banner.show {
+      display: inline-flex;
+    }
+
     /* PRINT MEDIA RULES */
     @media print {
       @page {
@@ -708,6 +737,7 @@
       .top-bar,
       .mobile-nav,
       .camera-hud,
+      .toast-banner,
       #mobileViewContainer {
         display: none !important;
       }
@@ -744,6 +774,9 @@
     <button class="btn btn-danger" style="padding:4px 10px; font-size:11px;" onclick="toggleScreenshotMode(false)">✖ Exit Camera</button>
   </div>
 
+  <!-- TOAST MESSAGE -->
+  <div id="toastBanner" class="toast-banner no-print"></div>
+
   <!-- TOP BAR -->
   <header class="top-bar no-print">
     <div class="top-bar-inner">
@@ -751,11 +784,11 @@
         <div class="brand-icon">📅</div>
         <div>
           <div class="brand-title">
-            <span>Teacher Daily Schedule Builder</span>
+            <span>Teacher Daily Schedule Builder V10.0</span>
             <span id="conflictStatusBadge" class="badge-ok">✓ 0 Overlaps</span>
           </div>
           <div class="brand-sub">
-            1. Set Prime & Hallo first • 2. Tap 🎲 Auto-Fill (Leads only, Assists blank, Kindy 16:15–17:00 & 17:00–17:50 locked)
+            1. Set Date/Day, Prime (18:00-19:30), Hallo (3x) &amp; Bus first • 2. Tap 🎲 Auto-Fill Lead &amp; Assist (13:50 Early Kids &amp; Seasonal = Manual)
           </div>
         </div>
       </div>
@@ -772,23 +805,23 @@
           📸 Screenshot View
         </button>
 
-        <!-- Auto-Fill Leads (Respects Pre-Set Prime/Hallo, Leaves Assist Blank, Locks Kindy Blocks) -->
+        <!-- Auto-Fill Leads & Assists -->
         <button class="btn btn-indigo" onclick="autoFillSchedule()">
-          🎲 Auto-Fill Leads
+          🎲 Auto-Fill Lead &amp; Assist
         </button>
 
-        <!-- Core Shifts 11-20 & Lunch 12-13 -->
+        <!-- Core Shifts 11-20 & Lunch 12-13 (Kato Shift Blank) -->
         <button class="btn" onclick="applyCoreShiftsOnly()">
           ⚡ Core Shifts (11-20)
         </button>
 
         <!-- Load 8/27 Sample -->
         <button class="btn" onclick="loadSample827()">
-          📋 8/27 Sample
+          📋 Load 8/27 Sample
         </button>
 
         <!-- Blank All -->
-        <button class="btn btn-danger" onclick="blankAllConfirm()">
+        <button class="btn btn-danger" onclick="openBlankConfirmModal()">
           🗑️ Blank All
         </button>
 
@@ -812,8 +845,8 @@
         <button id="btnClearSpotlight" class="t-chip" style="display:none; background:#dc2626; color:#fff;" onclick="setSpotlight(null)">✕ Clear</button>
       </div>
       <div style="color:#cbd5e1; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-        <span>⭐ <b>Pre-Auto-Fill Check:</b> Prime (<span id="topPrimeSummary" style="color:#fde047; font-weight:800;">Not set</span>) | Hallo (<span id="topHalloSummary" style="color:#fde047; font-weight:800;">Koi • Not set</span>)</span>
-        <button class="t-chip" style="border-color:#f59e0b; color:#fde047;" onclick="openPresetModal()">⚙️ Presets</button>
+        <span>⭐ <b>Pre-Auto-Fill Check:</b> Date (<span id="topDateSummary" style="color:#fde047; font-weight:800;">Not set</span>) | Prime (<span id="topPrimeSummary" style="color:#fde047; font-weight:800;">Not set</span>) | Hallo (<span id="topHalloSummary" style="color:#fde047; font-weight:800;">Koi • Not set</span>) | Bus (<span id="topBusSummary" style="color:#fde047; font-weight:800;">Not set</span>)</span>
+        <button class="t-chip" style="border-color:#f59e0b; color:#fde047;" onclick="openPresetModal()">⚙️ Rules (V10.0)</button>
       </div>
     </div>
   </header>
@@ -825,7 +858,7 @@
 
         <!-- ================= COLUMN 1: LEFT STAFF, BUS & CLEANING ================= -->
         <div class="col-pane">
-          <!-- Date & Day of Week Header -->
+          <!-- Date & Day of Week Header (Set Manually First Before Auto-Fill) -->
           <div style="display:grid; grid-template-columns: 120px 1fr; border-bottom: 2px solid var(--border-strong); height: 60px;">
             <div style="border-right: 2px solid var(--border-strong); display:flex; align-items:center; justify-content:center; gap:2px; padding:4px;">
               <div id="slot_meta_month" class="slot-box" style="width:44px; height:42px; font-size:24px;" data-placeholder="MM" onclick="openSlotPicker('meta_month')"></div>
@@ -849,25 +882,38 @@
           <div id="staffGridContainer" class="staff-grid"></div>
 
           <!-- Notice: Important Updates / Trial / Parent Interviews -->
-          <div style="border-bottom: 2px solid var(--border-strong); flex:1; display:flex; flex-direction:column; min-height:110px;">
+          <div style="border-bottom: 2px solid var(--border-strong); flex:1; display:flex; flex-direction:column; min-height:95px;">
             <div class="sched-hdr">
               <span style="text-decoration:underline;">Notice: Important Updates / Trial / Parent Interviews :</span>
             </div>
             <div id="slot_notice_box" class="slot-box" style="flex:1; align-items:flex-start; justify-content:flex-start; text-align:left; padding:6px;" data-placeholder="Tap to add trial kids / parent interviews..." onclick="openSlotPicker('notice_box')"></div>
           </div>
 
-          <!-- Bus Driving & Allergies -->
-          <div style="display:grid; grid-template-columns: 1fr 64px 64px; border-bottom: 2px solid var(--border-strong); min-height:95px;">
+          <!-- Bus Driving & Bus Staff (Set Manually First Before Auto-Fill -> Zero Overlap) -->
+          <div style="display:grid; grid-template-columns: 1fr 56px 56px; border-bottom: 2px solid var(--border-strong); min-height:112px;">
             <div style="border-right:1px solid var(--border-mid); display:flex; flex-direction:column;">
-              <div class="sched-hdr">Bus Driving &amp; Bus Staff</div>
-              <div id="slot_bus_box" class="slot-box" style="flex:1; align-items:flex-start; justify-content:flex-start; text-align:left; padding:5px;" data-placeholder="Tap to set bus staff & routes..." onclick="openSlotPicker('bus_box')"></div>
+              <div class="sched-hdr">
+                <span>Bus Driving &amp; Bus Staff</span>
+                <span style="font-size:8px; background:#fef3c7; color:#92400e; padding:0 4px; border-radius:3px;">Set 1st • No Overlap</span>
+              </div>
+              <!-- Structured Bus Staff 1 & 2 + Time Windows -->
+              <div style="display:grid; grid-template-columns: 78px 1fr; border-bottom:1px solid #cbd5e1; min-height:20px;">
+                <div id="slot_bus_staff1" class="slot-box" style="border-right:1px solid #cbd5e1; min-height:20px;" data-placeholder="Bus Staff 1" onclick="openSlotPicker('bus_staff1')"></div>
+                <div id="slot_bus_time1" class="slot-box" style="min-height:20px;" data-placeholder="Time (e.g. 17:55~19:45)" onclick="openSlotPicker('bus_time1')"></div>
+              </div>
+              <div style="display:grid; grid-template-columns: 78px 1fr; border-bottom:1px solid #cbd5e1; min-height:20px;">
+                <div id="slot_bus_staff2" class="slot-box" style="border-right:1px solid #cbd5e1; min-height:20px;" data-placeholder="Bus Staff 2" onclick="openSlotPicker('bus_staff2')"></div>
+                <div id="slot_bus_time2" class="slot-box" style="min-height:20px;" data-placeholder="Time / Walk Route" onclick="openSlotPicker('bus_time2')"></div>
+              </div>
+              <!-- Additional Bus Notes / Routes -->
+              <div id="slot_bus_box" class="slot-box" style="flex:1; align-items:flex-start; justify-content:flex-start; text-align:left; padding:4px; min-height:38px;" data-placeholder="Tap to add bus route notes..." onclick="openSlotPicker('bus_box')"></div>
             </div>
             <div style="border-right:1px solid var(--border-mid); display:flex; flex-direction:column;">
-              <div class="sched-hdr" style="font-size:8.5px; justify-content:center;">Kindy Allergy</div>
+              <div class="sched-hdr" style="font-size:8px; justify-content:center;">Kindy Allergy</div>
               <div id="slot_allergy_kindy" class="slot-box" style="flex:1;" data-placeholder="—" onclick="openSlotPicker('allergy_kindy')"></div>
             </div>
             <div style="display:flex; flex-direction:column;">
-              <div class="sched-hdr" style="font-size:8.5px; justify-content:center;">Ele. Allergy</div>
+              <div class="sched-hdr" style="font-size:8px; justify-content:center;">Ele. Allergy</div>
               <div id="slot_allergy_elem" class="slot-box" style="flex:1;" data-placeholder="—" onclick="openSlotPicker('allergy_elem')"></div>
             </div>
           </div>
@@ -930,7 +976,7 @@
         <div class="col-pane">
           <div class="col-banner banner-kindy">
             <span>KINDY</span>
-            <span class="banner-tag">🔒 16:15–17:00 &amp; 17:00–17:50</span>
+            <span class="banner-tag">🔒 16:15–17:05 &amp; 17:00–17:50</span>
           </div>
           <!-- Blank top spacer matching paper template -->
           <div style="height:40px; border-bottom:1.5px solid var(--border-mid);"></div>
@@ -941,7 +987,7 @@
         <div class="col-pane">
           <div class="col-banner banner-elem">
             <span>Elementary</span>
-            <span class="banner-tag">Assist = Manual</span>
+            <span class="banner-tag">13:50 Manual • Auto Assist</span>
           </div>
           <div id="elemTopRowsContainer"></div>
 
@@ -959,9 +1005,9 @@
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; background:#f5f5f4; border-bottom:1px solid var(--border-soft); font-size:8px; font-weight:700; text-align:center; color:#64748b;">
               <div style="border-right:1px solid var(--border-soft);">Lead</div>
-              <div style="border-right:1px solid var(--border-mid);">Assist (Manual)</div>
+              <div style="border-right:1px solid var(--border-mid);">Assist</div>
               <div style="border-right:1px solid var(--border-soft);">Lead</div>
-              <div>Assist (Manual)</div>
+              <div>Assist</div>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; min-height:28px;">
               <div id="slot_elem_1615_ab_lead" class="slot-box" style="border-right:1px solid var(--border-soft);" data-placeholder="Lead" onclick="openSlotPicker('elem_1615_ab_lead')"></div>
@@ -989,29 +1035,32 @@
           <div class="sched-block">
             <div class="sched-hdr">16:45 2nd Snack / Group Activity</div>
             <div class="la-grid">
-              <div id="slot_elem_1645_lead" class="slot-box" data-placeholder="Lead" onclick="openSlotPicker('elem_1645_lead')"></div>
+              <div id="slot_elem_1645_lead" class="slot-box" border-right:1px solid var(--border-mid);" data-placeholder="Lead" onclick="openSlotPicker('elem_1645_lead')"></div>
               <div id="slot_elem_1645_assist" class="slot-box" data-placeholder="Assist" onclick="openSlotPicker('elem_1645_assist')"></div>
             </div>
           </div>
 
-          <!-- 17:00 Class Separation + Right Side Prime & Hallo Pre-Set Cards -->
-          <div style="display:grid; grid-template-columns: 1fr 112px; flex:1;">
-            <!-- Left Sub-Column: 17:00 Matrix + 18:00, 18:05, 18:15 -->
+          <!-- 17:05 - 17:50 Class 1 Language Development + Right Side Prime & Hallo Pre-Set Cards -->
+          <div style="display:grid; grid-template-columns: 1fr 116px; flex:1;">
+            <!-- Left Sub-Column: 17:05-17:50 Matrix + 18:00, 18:05, 18:15 -->
             <div style="border-right:1.5px solid var(--border-strong); display:flex; flex-direction:column;">
-              <div class="sched-hdr" style="justify-content:center;">17:00 Class 1 Language Development</div>
-              <div style="display:grid; grid-template-columns:58px 1fr 1fr 1fr; border-bottom:1.5px solid var(--border-mid); text-align:center; font-size:9px;">
+              <div class="sched-hdr" style="justify-content:space-between;">
+                <span>17:05 – 17:50 Class 1 Language Development</span>
+                <span style="font-size:8px; background:#dbeafe; color:#1e3a8a; padding:0 4px; border-radius:3px;">Starts 17:05 • Ends 17:50</span>
+              </div>
+              <div style="display:grid; grid-template-columns:62px 1fr 1fr 1fr; border-bottom:1.5px solid var(--border-mid); text-align:center; font-size:9px;">
                 <div style="border-right:1px solid var(--border-mid); background:#e7e5e4; font-weight:800; padding:3px 2px;">
-                  17:00<br><span style="font-size:7.5px;">Class Sep.</span>
+                  17:05–17:50<br><span style="font-size:7.5px;">Class Sep.</span>
                 </div>
                 <div style="border-right:1px solid var(--border-mid); background:#f5f5f4; font-weight:800; display:flex; align-items:center; justify-content:center;">Beginner</div>
                 <div style="border-right:1px solid var(--border-mid); background:#f5f5f4; font-weight:800; display:flex; align-items:center; justify-content:center;">Intermediate</div>
                 <div style="background:#f5f5f4; font-weight:800; display:flex; align-items:center; justify-content:center;">Upper Int.</div>
 
-                <!-- 17:05 / 17:20 / 17:30 Curriculum matrix -->
-                <div style="border-right:1px solid var(--border-mid); border-top:1px solid var(--border-soft); padding:4px 2px; font-weight:800; background:#fafaf9;">
+                <!-- 17:05 / 17:20 / 17:30-17:50 Curriculum matrix -->
+                <div style="border-right:1px solid var(--border-mid); border-top:1px solid var(--border-soft); padding:4px 2px; font-weight:800; background:#fafaf9; font-size:8px;">
                   <div>17:05</div>
-                  <div style="margin:6px 0;">17:20</div>
-                  <div>17:30</div>
+                  <div style="margin:5px 0;">17:20</div>
+                  <div>17:30–17:50</div>
                 </div>
                 <div style="border-right:1px solid var(--border-mid); border-top:1px solid var(--border-soft); padding:4px 2px; font-size:8px; color:#475569;">
                   <div>Phonics Chant</div>
@@ -1029,10 +1078,1914 @@
                   <div>Worksheet Time</div>
                 </div>
 
-                <!-- Teacher row for 17:00 Separation -->
+                <!-- Teacher row for 17:05-17:50 Separation -->
                 <div style="border-right:1px solid var(--border-mid); border-top:1px solid var(--border-mid); background:#e7e5e4; font-weight:800; display:flex; align-items:center; justify-content:center; font-size:8px;">
                   Teacher
                 </div>
                 <div id="slot_elem_1700_beg" class="slot-box" style="border-right:1px solid var(--border-mid); border-top:1px solid var(--border-mid);" data-placeholder="Beg. Lead" onclick="openSlotPicker('elem_1700_beg')"></div>
                 <div id="slot_elem_1700_int" class="slot-box" style="border-right:1px solid var(--border-mid); border-top:1px solid var(--border-mid);" data-placeholder="Int. Lead" onclick="openSlotPicker('elem_1700_int')"></div>
-                <div id="slot_elem_1
+                <div id="slot_elem_1700_upp" class="slot-box" style="border-top:1px solid var(--border-mid);" data-placeholder="Upp. Lead" onclick="openSlotPicker('elem_1700_upp')"></div>
+              </div>
+
+              <!-- 18:00 Presentation (3 columns) -->
+              <div class="sched-block">
+                <div class="sched-hdr">18:00 Presentation</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; min-height:24px;">
+                  <div id="slot_elem_1800_beg" class="slot-box" style="border-right:1px solid var(--border-mid);" data-placeholder="Beg." onclick="openSlotPicker('elem_1800_beg')"></div>
+                  <div id="slot_elem_1800_int" class="slot-box" style="border-right:1px solid var(--border-mid);" data-placeholder="Int." onclick="openSlotPicker('elem_1800_int')"></div>
+                  <div id="slot_elem_1800_upp" class="slot-box" data-placeholder="Upp." onclick="openSlotPicker('elem_1800_upp')"></div>
+                </div>
+              </div>
+
+              <!-- 18:05 Class 2 Reading Tree -->
+              <div class="sched-block">
+                <div class="sched-hdr">18:05 Class 2 Reading Tree (Worksheet &amp; Practice Books)</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; min-height:24px;">
+                  <div id="slot_elem_1805_beg" class="slot-box" style="border-right:1px solid var(--border-mid);" data-placeholder="Beg." onclick="openSlotPicker('elem_1805_beg')"></div>
+                  <div id="slot_elem_1805_int" class="slot-box" style="border-right:1px solid var(--border-mid);" data-placeholder="Int." onclick="openSlotPicker('elem_1805_int')"></div>
+                  <div id="slot_elem_1805_upp" class="slot-box" data-placeholder="Upp." onclick="openSlotPicker('elem_1805_upp')"></div>
+                </div>
+              </div>
+
+              <!-- 18:15 Fun with the Teacher / Homework -->
+              <div style="flex:1; display:flex; flex-direction:column;">
+                <div class="sched-hdr">18:15 Fun with the Teacher / Homework</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; flex:1; min-height:26px;">
+                  <div id="slot_elem_1815_beg" class="slot-box" style="border-right:1px solid var(--border-mid);" data-placeholder="Beg." onclick="openSlotPicker('elem_1815_beg')"></div>
+                  <div id="slot_elem_1815_int" class="slot-box" style="border-right:1px solid var(--border-mid);" data-placeholder="Int." onclick="openSlotPicker('elem_1815_int')"></div>
+                  <div id="slot_elem_1815_upp" class="slot-box" data-placeholder="Upp." onclick="openSlotPicker('elem_1815_upp')"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Sub-Column: Pre-Set Prime Class (Core 18:00-19:30), Hallo Class (Koi Only + 3 Time Ranges), and Front Desk -->
+            <div style="display:flex; flex-direction:column; justify-content:space-between; padding:3px; background:#fafaf9; font-size:8.5px;">
+              <!-- Prime Class Box (Set Before Auto-Fill • Core Time: 18:00 - 19:30) -->
+              <div style="border:1.5px solid #0284c7; background:#f0f9ff; padding:3px; border-radius:4px;">
+                <div style="font-weight:800; text-align:center; color:#0369a1; border-bottom:1px solid #bae6fd; padding-bottom:2px;">
+                  Prime Class<br><span style="font-size:7px;">(Core: 18:00 - 19:30)</span>
+                </div>
+                <div style="font-size:7.5px; text-align:center; color:#475569; margin-top:2px;">Lead Teacher</div>
+                <div id="slot_prime_lead" class="slot-box" style="border-bottom:1px solid #cbd5e1; min-height:20px; background:#fff;" data-placeholder="Pick Lead" onclick="openSlotPicker('prime_lead')"></div>
+                <div style="font-size:7.5px; text-align:center; color:#475569; margin-top:2px;">Time (Core 18:00-19:30)</div>
+                <div id="slot_prime_time" class="slot-box" style="min-height:20px; background:#fff;" data-placeholder="18:00 - 19:30" onclick="openSlotPicker('prime_time')"></div>
+              </div>
+
+              <!-- Hallo Class Box (Koi Only, 3 Time Ranges, Set Before Auto-Fill) -->
+              <div style="border:1.5px solid #d97706; background:#fffbeb; padding:3px; border-radius:4px; margin-top:3px;">
+                <div style="font-weight:800; text-align:center; color:#b45309; border-bottom:1px solid #fde68a; padding-bottom:2px;">
+                  Hallo Class<br><span style="font-size:7px;">(Koi Only • 3 Time Ranges)</span>
+                </div>
+                <div style="font-size:7.5px; text-align:center; color:#92400e; margin-top:2px;">Lead Teacher</div>
+                <div id="slot_hallo_lead" class="slot-box" style="border-bottom:1px solid #fde68a; min-height:19px; background:#fff;" data-placeholder="Koi" onclick="openSlotPicker('hallo_lead')"></div>
+                <div style="font-size:7px; text-align:center; color:#92400e; margin-top:2px;">Time Range 1</div>
+                <div id="slot_hallo_time1" class="slot-box" style="border-bottom:1px solid #fde68a; min-height:18px; background:#fff;" data-placeholder="Range 1" onclick="openSlotPicker('hallo_time1')"></div>
+                <div style="font-size:7px; text-align:center; color:#92400e; margin-top:2px;">Time Range 2</div>
+                <div id="slot_hallo_time2" class="slot-box" style="border-bottom:1px solid #fde68a; min-height:18px; background:#fff;" data-placeholder="Range 2" onclick="openSlotPicker('hallo_time2')"></div>
+                <div style="font-size:7px; text-align:center; color:#92400e; margin-top:2px;">Time Range 3</div>
+                <div id="slot_hallo_time3" class="slot-box" style="min-height:18px; background:#fff;" data-placeholder="Range 3" onclick="openSlotPicker('hallo_time3')"></div>
+              </div>
+
+              <!-- Front Note -->
+              <div style="border:1px dashed #64748b; padding:3px; margin-top:3px; background:#fff;">
+                <div style="font-size:7.5px; font-weight:800; color:#475569;">→ Front / Desk Note:</div>
+                <div id="slot_front_note" class="slot-box" style="min-height:22px;" data-placeholder="e.g. -> front" onclick="openSlotPicker('front_note')"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE PHONE VIEW -->
+  <div id="mobileViewContainer" class="mobile-container no-print"></div>
+
+  <!-- MOBILE STICKY BOTTOM NAV -->
+  <nav class="mobile-nav no-print" id="mobileBottomNav">
+    <button class="m-nav-btn active" data-tab="staff" onclick="switchMobileTab('staff')">
+      <span style="font-size:15px;">👥</span>
+      <span>Pre-Set &amp; Staff</span>
+    </button>
+    <button class="m-nav-btn" data-tab="kindy" onclick="switchMobileTab('kindy')">
+      <span style="font-size:15px;">🧸</span>
+      <span>KINDY</span>
+    </button>
+    <button class="m-nav-btn" data-tab="elem" onclick="switchMobileTab('elem')">
+      <span style="font-size:15px;">🎒</span>
+      <span>Elementary</span>
+    </button>
+    <button class="m-nav-btn" data-tab="seasonal" onclick="switchMobileTab('seasonal')">
+      <span style="font-size:15px;">☀️</span>
+      <span>Seasonal</span>
+    </button>
+    <button class="m-nav-btn" data-tab="camera" onclick="toggleScreenshotMode(true)">
+      <span style="font-size:15px;">📸</span>
+      <span>Full Paper</span>
+    </button>
+  </nav>
+
+  <!-- SMART PICKER MODAL -->
+  <div id="pickerModal" class="modal-backdrop no-print" onclick="if(event.target===this) closeSlotPicker()">
+    <div class="picker-sheet">
+      <div class="picker-hdr">
+        <div>
+          <div id="pickerSectionLabel" style="font-size:10px; color:#fbbf24; font-weight:800; text-transform:uppercase;">SECTION</div>
+          <div id="pickerTitleLabel" style="font-size:15px; font-weight:800;">Select Option</div>
+        </div>
+        <button class="btn" style="background:#334155; border:none;" onclick="closeSlotPicker()">✕ Close</button>
+      </div>
+
+      <div class="picker-body">
+        <!-- Rule / Overlap Notice Banner -->
+        <div id="pickerRuleBanner" style="display:none; padding:8px 10px; border-radius:8px; background:#eff6ff; border:1px solid #bfdbfe; color:#1e3a8a; font-size:11px; font-weight:700;"></div>
+
+        <!-- Teacher Modifiers (Shown for Assist / Multi-Teacher slots) -->
+        <div id="pickerModifierRow" style="display:none; gap:6px; flex-wrap:wrap;">
+          <button id="btnModMulti" class="btn" style="flex:1; justify-content:center; background:#f1f5f9; color:#0f172a; border-color:#cbd5e1;" onclick="togglePickerMulti()">
+            ➕ Multi-Select: OFF
+          </button>
+          <button id="btnModBracket" class="btn" style="flex:1; justify-content:center; background:#f1f5f9; color:#0f172a; border-color:#cbd5e1;" onclick="togglePickerBrackets()">
+            ( ) Brackets: OFF
+          </button>
+        </div>
+
+        <!-- Same as Above Arrow & Clear Buttons -->
+        <div style="display:flex; gap:8px;">
+          <button id="btnSameAbove" class="btn" style="flex:1; justify-content:center; background:#e0f2fe; color:#0369a1; border-color:#7dd3fc; padding:9px;" onclick="pickContinuationArrow()">
+            ↓ Same as Above (↓)
+          </button>
+          <button class="btn" style="flex:1; justify-content:center; background:#fee2e2; color:#991b1b; border-color:#fca5a5; padding:9px;" onclick="clearActiveSlot()">
+            🗑️ Clear Blank
+          </button>
+        </div>
+
+        <!-- Option Grid -->
+        <div id="pickerOptionsGrid" class="opt-grid"></div>
+
+        <!-- Done Button for Multi-Select -->
+        <button id="btnMultiDone" class="btn btn-amber" style="display:none; width:100%; justify-content:center; padding:10px; font-size:13px;" onclick="closeSlotPicker()">
+          ✓ Done Selecting
+        </button>
+
+        <!-- Custom Manual Input -->
+        <div style="border-top:1px solid #e2e8f0; padding-top:8px;">
+          <div style="font-size:10px; font-weight:800; color:#64748b; margin-bottom:4px;">OR TYPE CUSTOM VALUE:</div>
+          <div style="display:flex; gap:6px;">
+            <input id="pickerCustomInput" type="text" placeholder="Type custom text or time..." style="flex:1; padding:8px 10px; border-radius:8px; border:1.5px solid #cbd5e1; font-size:13px; font-weight:700;" onkeydown="if(event.key==='Enter') applyCustomInput()" />
+            <button class="btn btn-indigo" onclick="applyCustomInput()">Apply</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BLANK ALL CONFIRMATION MODAL (No browser confirm()) -->
+  <div id="blankConfirmModal" class="modal-backdrop no-print" onclick="if(event.target===this) closeBlankConfirmModal()">
+    <div class="picker-sheet" style="max-width:400px;">
+      <div class="picker-hdr">
+        <div style="font-size:15px; font-weight:800;">🗑️ Blank Entire Schedule?</div>
+        <button class="btn" onclick="closeBlankConfirmModal()">✕</button>
+      </div>
+      <div class="picker-body" style="font-size:13px; color:#334155;">
+        <p style="margin:4px 0 12px;">This will clear all slots on the worksheet back to blank (Hallo Lead stays defaulted to <b>Koi</b> and Prime Core Time stays ready at <b>18:00 - 19:30</b>).</p>
+        <div style="display:flex; gap:8px;">
+          <button class="btn" style="flex:1; justify-content:center; background:#e2e8f0; color:#0f172a;" onclick="closeBlankConfirmModal()">Cancel</button>
+          <button class="btn btn-danger" style="flex:1; justify-content:center; background:#dc2626; color:#fff;" onclick="executeBlankAll()">Yes, Blank All</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRESETS & ROSTER INFO MODAL -->
+  <div id="presetModal" class="modal-backdrop no-print" onclick="if(event.target===this) closePresetModal()">
+    <div class="picker-sheet" style="max-width:540px;">
+      <div class="picker-hdr">
+        <div style="font-size:15px; font-weight:800;">⚙️ School Scheduling Rules (V10.0)</div>
+        <button class="btn" onclick="closePresetModal()">✕ Close</button>
+      </div>
+      <div class="picker-body" style="font-size:12px; color:#1e293b; line-height:1.45;">
+        <div style="padding:8px 10px; background:#f8fafc; border-radius:8px; border:1px solid #cbd5e1; display:flex; flex-direction:column; gap:4px;">
+          <div><b>1. 13:50 Early Kids = Manual Only:</b> <code>13:50 (Early Kids)</code> Lead &amp; Assist stay untouched/blank during Auto-Fill so you can set them manually.</div>
+          <div><b>2. Hallo (3x), Prime (18:00-19:30) &amp; Bus Strictly Excluded:</b> Any teacher in Hallo, Prime, or Bus during a time window will NOT be placed in Kindy or Elementary (neither Lead nor Assist).</div>
+          <div><b>3. Smart Auto-Assist:</b> Teachers who are not leading (and not in Hallo/Prime/Bus) automatically assist! Elementary shows multiple teachers comma-separated (e.g. <code>Anna, Mitchelle</code>), and KINDY shows them in brackets <code>(Anna)</code>.</div>
+          <div><b>4. Kindy Fixed Blocks &amp; 17:05 Class 1:</b> Kindy <code>16:15–17:05</code> and <code>17:00(ABC)–17:50</code> keep the same Lead teacher; Elementary Class 1 runs <code>17:05–17:50</code>.</div>
+          <div><b>5. Manual Date/Day &amp; Kato Shift Blank:</b> Date/Day are preserved on Auto-Fill, and Director Kato's shift stays blank.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /********************************************************************
+     * 1. STRICT SCHOOL CONSTANTS & TIMETABLE DEFINITIONS (V9.0)
+     ********************************************************************/
+    const CORE_DIRECTORS = ['Kato', 'Coulter'];
+    const LEAD_ASSIST_TEACHERS = ['Koi', 'Thomas', 'Anna', 'Mitchelle'];
+    const ALL_BUS_STAFF_OPTIONS = ['Kato', 'Coulter', 'Koi', 'Thomas', 'Anna', 'Mitchelle'];
+    const HALLO_LEAD_ONLY = ['Koi'];
+    const PRIME_CORE_TIME = '18:00 - 19:30';
+
+    const KINDY_ACTIVITIES = [
+      'Indoor', 'Craft', 'Social Science', 'Origami', 'Dance', 'Word Search', 'Math'
+    ];
+    const ELEM_ACTIVITIES = [
+      'Indoor', 'Craft', 'Teacher’s Choice', 'Dance', 'Science', 'Social Studies', 'Outdoor', 'Music'
+    ];
+
+    const SHIFT_PRESETS = ['11 - 20', '16 - 20', '~ 18', '13 - 20', '9 ~ 18:30', '10 - 19', 'Off'];
+    const PREP_PRESETS = ['while Assist', '13:30 - 14', '11:10 ~ 12', '14:00 - 14:30', '—'];
+    const LUNCH_PRESETS = ['12 - 13', '12:10 - 13:10', '11:10 - 12:10', '16 - 17', 'おまかせ', '—'];
+
+    const PRIME_TIME_PRESETS = [
+      '18:00 - 19:30',
+      '18:00 - 19:00',
+      '17:50 - 19:20',
+      '17:00 - 18:30',
+      '—'
+    ];
+
+    const HALLO_TIME_PRESETS = [
+      '16:00 - 17:00',
+      '17:00 - 18:00',
+      '18:00 - 19:00',
+      '14:00 - 15:00',
+      '15:00 - 16:00',
+      '14:00 - 16:00',
+      '16:00 - 18:00',
+      '—'
+    ];
+
+    const BUS_TIME_PRESETS = [
+      '17:55 ~ 19:45',
+      '17:50 ~ 19:30',
+      '14:00 ~ 15:00',
+      '15:00 ~ 16:00',
+      'walk to Rainbow club -> sheers',
+      '—'
+    ];
+
+    const STAFF_CARDS = [
+      { id: 'staff_1', role: 'Director:', defaultName: 'Kato', isDirector: true },
+      { id: 'staff_2', role: 'Teacher:', defaultName: 'Thomas', isDirector: false },
+      { id: 'staff_3', role: 'Teacher:', defaultName: 'Anna', isDirector: false },
+      { id: 'staff_4', role: 'Director 2:', defaultName: 'Coulter', isDirector: true },
+      { id: 'staff_5', role: 'Teacher:', defaultName: 'Mitchelle', isDirector: false },
+      { id: 'staff_6', role: 'Teacher:', defaultName: '', isDirector: false },
+      { id: 'staff_7', role: 'Teacher:', defaultName: 'Koi', isDirector: false },
+      { id: 'staff_8', role: 'Teacher:', defaultName: '', isDirector: false },
+      { id: 'staff_9', role: 'Teacher:', defaultName: '', isDirector: false }
+    ];
+
+    const CLEANING_ROOMS = [
+      { id: 'clean_lobby', label: 'Lobby' },
+      { id: 'clean_comp', label: 'Computer' },
+      { id: 'clean_ab', label: 'Room A&B' },
+      { id: 'clean_d', label: 'Room D' },
+      { id: 'clean_ck', label: 'Room C / Kindy' },
+      { id: 'clean_e', label: 'Room E' },
+      { id: 'clean_bath', label: 'Bathroom' },
+      { id: 'clean_corr', label: 'Corridor' }
+    ];
+
+    // SEASONAL ROWS (Manual Fill Only)
+    const SEASONAL_ROWS = [
+      { id: 'sea_0930', title: '9:30 Fun With the Teacher', start: 570, end: 600 },
+      { id: 'sea_1000', title: '10:00 Warm Up (Hello Song / Weather / Calendar)', start: 600, end: 615 },
+      { id: 'sea_1015', title: '10:15 Phonics', start: 615, end: 645 },
+      { id: 'sea_1045', title: '10:45 Bathroom', start: 645, end: 655 },
+      { id: 'sea_1055', title: '10:55 Social Development & Vocab', start: 655, end: 670 },
+      { id: 'sea_1110', title: '11:10 Main Activity :', start: 670, end: 720, hasAct: true, actSlot: 'sea_1110_act', actPool: 'elem' },
+      { id: 'sea_1200', title: '12:00 Bathroom', start: 720, end: 730 },
+      { id: 'sea_1210', title: '12:10 Lunch', start: 730, end: 765 },
+      { id: 'sea_1245', title: '12:45 Bathroom', start: 765, end: 770 },
+      { id: 'sea_1250', title: '12:50 Writing Diary', start: 770, end: 800 },
+      { id: 'sea_1320', title: '13:20 Parents Presentation', start: 800, end: 810, threeCols: ['Lead', 'Assist', 'Interpreter'] },
+      { id: 'sea_1330', title: '13:30 Fun With The Teacher (Kids that stay over)', start: 810, end: 840 }
+    ];
+
+    // KINDY ROWS
+    // Fix #4: 17:00 Parents Presentation finishes at 17:05 (start: 1020, end: 1025)
+    const KINDY_ROWS = [
+      { id: 'kin_1430', title: '14:30 Fun with the Teacher (Bathroom)', start: 870, end: 885 },
+      { id: 'kin_1445', title: '14:45 Show & Tell', start: 885, end: 900 },
+      { id: 'kin_1500', title: '15:00 Bathroom & Book Time', start: 900, end: 915 },
+      { id: 'kin_1515', title: '15:15 Snack Time', start: 915, end: 930 },
+      { id: 'kin_1530', title: '15:30 Circle Time & Social Development', start: 930, end: 960 },
+      { id: 'kin_1600', title: '16:00 Vocab Time', start: 960, end: 975 },
+      // LOCKED BLOCK A: 16:15 to 17:05 Same Teacher
+      { id: 'kin_1615', title: '16:15 Activity 1 :', start: 975, end: 995, hasAct: true, actSlot: 'kin_1615_act', actPool: 'kindy', lockGroup: 'KINDY_1615_1700' },
+      { id: 'kin_1635', title: '16:35 PHONICS PROGRAM & Worksheet', start: 995, end: 1010, lockGroup: 'KINDY_1615_1700' },
+      { id: 'kin_1650', title: '16:50 CLASS PRESENTATION (3 min)', start: 1010, end: 1020, lockGroup: 'KINDY_1615_1700' },
+      { id: 'kin_1700', title: '17:00–17:05 Parents Presentation', start: 1020, end: 1025, special1700: true, lockGroup: 'KINDY_1615_1700' },
+      // LOCKED BLOCK B: 17:00 Bathroom & ABC to 17:50 Same Teacher
+      { id: 'kin_1710', title: '17:10 Vocab Review Time', start: 1030, end: 1045, lockGroup: 'KINDY_1700_1750' },
+      { id: 'kin_1725', title: '17:25 Spelling Bee', start: 1045, end: 1060, lockGroup: 'KINDY_1700_1750' },
+      { id: 'kin_1740', title: '17:40 Bathroom & Story Time', start: 1060, end: 1070, lockGroup: 'KINDY_1700_1750' },
+      // 17:50 to 18:30
+      { id: 'kin_1750', title: '17:50 Activity 2 :', start: 1070, end: 1090, hasAct: true, actSlot: 'kin_1750_act', actPool: 'kindy' },
+      { id: 'kin_1810', title: '18:10 CLASS PRESENTATION (4 min)', start: 1090, end: 1100 },
+      { id: 'kin_1820', title: '18:20 PARENTS PRESENTATION (4 min)', start: 1100, end: 1115, threeCols: ['Lead', 'Assist', 'Interpreter'] }
+    ];
+
+    // ELEMENTARY TOP ROWS
+    // Fix #1: 13:50 Early Kids is Manual Fill Only
+    const ELEM_TOP_ROWS = [
+      { id: 'ele_1350', title: '13:50 (Early Kids) Fun with the Teacher / Homework Time', start: 830, end: 870, manualOnly: true },
+      { id: 'ele_1430', title: '14:30 Vocab Video Time', start: 870, end: 885 },
+      { id: 'ele_1445', title: '14:45 Fun with the Teacher / Homework', start: 885, end: 900 },
+      { id: 'ele_1500', title: '15:00 Vocab Time (By a Teacher and Worksheet/Assessment)', start: 900, end: 915 },
+      { id: 'ele_1515', title: '15:15 Fun with the Teacher / Homework', start: 915, end: 930 },
+      { id: 'ele_1530', title: '15:30 Snack Time (Bathroom too)', start: 930, end: 955 },
+      { id: 'ele_1555', title: '15:55 Social Development', start: 955, end: 975 }
+    ];
+
+    /********************************************************************
+     * 2. APPLICATION STATE & STORAGE
+     ********************************************************************/
+    const STORAGE_KEY = 'TEACHER_SCHEDULE_BUILDER_V10_STATE';
+
+    let state = {
+      slots: {
+        hallo_lead: 'Koi',
+        prime_time: PRIME_CORE_TIME
+      },
+      weekday: '',
+      layoutMode: window.innerWidth < 860 ? 'phone' : 'sheet',
+      mobileTab: 'staff',
+      markerMode: true,
+      spotlightTeacher: null,
+      picker: {
+        activeSlot: null,
+        multiSelect: false,
+        useBrackets: false
+      }
+    };
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById('toastBanner');
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        el.classList.remove('show');
+      }, 2800);
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          slots: state.slots,
+          weekday: state.weekday,
+          markerMode: state.markerMode
+        }));
+      } catch (e) {}
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.slots) state.slots = parsed.slots;
+          if (!state.slots.hallo_lead) state.slots.hallo_lead = 'Koi';
+          if (parsed && typeof parsed.weekday === 'string') state.weekday = parsed.weekday;
+          if (parsed && typeof parsed.markerMode === 'boolean') state.markerMode = parsed.markerMode;
+        }
+      } catch (e) {}
+    }
+
+    /********************************************************************
+     * 3. TIME WINDOW & ARROW RESOLUTION ENGINE (incl. Prime, 3x Hallo & Bus)
+     ********************************************************************/
+    function parseTimeRangeString(str) {
+      if (!str) return null;
+      const clean = String(str).trim();
+      if (!clean || clean === '—') return null;
+
+      const rangeMatch = clean.match(/(\d{1,2})(?::(\d{2}))?\s*[-~〜–to]+\s*(\d{1,2})(?::(\d{2}))?/i);
+      if (rangeMatch) {
+        const h1 = parseInt(rangeMatch[1], 10);
+        const m1 = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : 0;
+        const h2 = parseInt(rangeMatch[3], 10);
+        const m2 = rangeMatch[4] ? parseInt(rangeMatch[4], 10) : 0;
+        const start = h1 * 60 + m1;
+        const end = h2 * 60 + m2;
+        if (end > start) return { start, end };
+      }
+
+      const singleMatch = clean.match(/(\d{1,2})(?::(\d{2}))?/);
+      if (singleMatch) {
+        const h1 = parseInt(singleMatch[1], 10);
+        const m1 = singleMatch[2] ? parseInt(singleMatch[2], 10) : 0;
+        if (h1 >= 8 && h1 <= 21) {
+          const start = h1 * 60 + m1;
+          return { start, end: start + 60 };
+        }
+      }
+      return null;
+    }
+
+    function extractTeacherNames(rawVal) {
+      if (!rawVal) return [];
+      const s = String(rawVal).trim();
+      if (!s || s === '↓' || s === '—') return [];
+      return LEAD_ASSIST_TEACHERS.filter(t => new RegExp('\\b' + t + '\\b', 'i').test(s));
+    }
+
+    // Parse Bus Duty windows from structured bus_staff1/2 + free-text bus_box
+    function getBusDutyWindows(customSlots) {
+      const map = customSlots || state.slots;
+      const busWindows = [];
+
+      // Structured Bus 1 & Bus 2
+      [1, 2].forEach(idx => {
+        const staffName = (map[`bus_staff${idx}`] || '').trim();
+        const timeStr = (map[`bus_time${idx}`] || '').trim();
+        const teachers = extractTeacherNames(staffName);
+        if (teachers.length > 0) {
+          const range = parseTimeRangeString(timeStr) || (timeStr.toLowerCase().includes('walk') ? { start: 1070, end: 1140 } : null);
+          if (range) {
+            teachers.forEach(t => {
+              busWindows.push({
+                slotId: `bus_staff${idx}`,
+                virtualTeacher: t,
+                section: 'BUS',
+                role: 'lead',
+                start: range.start,
+                end: range.end,
+                label: `Bus Duty (${timeStr})`
+              });
+            });
+          }
+        }
+      });
+
+      // Also parse free-text lines inside `bus_box` (e.g. "Koi 17:55 ~ 19:45")
+      const rawBox = (map['bus_box'] || '').trim();
+      if (rawBox) {
+        rawBox.split('\n').forEach((line, lineIdx) => {
+          const teachers = extractTeacherNames(line);
+          const range = parseTimeRangeString(line);
+          if (teachers.length > 0 && range) {
+            teachers.forEach(t => {
+              busWindows.push({
+                slotId: 'bus_box',
+                virtualTeacher: t,
+                section: 'BUS',
+                role: 'lead',
+                start: range.start,
+                end: range.end,
+                label: `Bus Duty (${line.trim()})`
+              });
+            });
+          }
+        });
+      }
+
+      return busWindows;
+    }
+
+    function getColumnChains() {
+      const seasonalLead = SEASONAL_ROWS.map(r => `${r.id}_lead`);
+      const seasonalAssist = SEASONAL_ROWS.map(r => `${r.id}_assist`);
+
+      const kindyLead = KINDY_ROWS.map(r => `${r.id}_lead`);
+      const kindyAssist = KINDY_ROWS.map(r => `${r.id}_assist`);
+
+      const elemLeadA = [
+        ...ELEM_TOP_ROWS.map(r => `${r.id}_lead`),
+        'elem_1615_ab_lead',
+        'elem_1640_ab_lead',
+        'elem_1645_lead'
+      ];
+      const elemAssistA = [
+        ...ELEM_TOP_ROWS.map(r => `${r.id}_assist`),
+        'elem_1615_ab_assist',
+        'elem_1640_ab_assist',
+        'elem_1645_assist'
+      ];
+      const elemLeadC = ['elem_1615_c_lead', 'elem_1640_c_lead'];
+      const elemAssistC = ['elem_1615_c_assist', 'elem_1640_c_assist'];
+
+      const elemBegChain = ['elem_1700_beg', 'elem_1800_beg', 'elem_1805_beg', 'elem_1815_beg'];
+      const elemIntChain = ['elem_1700_int', 'elem_1800_int', 'elem_1805_int', 'elem_1815_int'];
+      const elemUppChain = ['elem_1700_upp', 'elem_1800_upp', 'elem_1805_upp', 'elem_1815_upp'];
+
+      return [
+        seasonalLead, seasonalAssist,
+        kindyLead, kindyAssist,
+        elemLeadA, elemAssistA,
+        elemLeadC, elemAssistC,
+        elemBegChain, elemIntChain, elemUppChain
+      ];
+    }
+
+    function getEffectiveSlotValue(slotId, customSlots) {
+      const map = customSlots || state.slots;
+      const raw = (map[slotId] || '').trim();
+      if (raw !== '↓') return raw;
+
+      if (slotId === 'kin_1710_lead' && map['kin_1700_abc']) {
+        return map['kin_1700_abc'].trim();
+      }
+
+      const chains = getColumnChains();
+      for (const chain of chains) {
+        const idx = chain.indexOf(slotId);
+        if (idx > 0) {
+          for (let i = idx - 1; i >= 0; i--) {
+            const prevId = chain[i];
+            const prevVal = (map[prevId] || '').trim();
+            if (prevVal && prevVal !== '↓') return prevVal;
+          }
+        }
+      }
+      return '';
+    }
+
+    function getAllTimedSlots(customSlots) {
+      const map = customSlots || state.slots;
+      const list = [];
+
+      SEASONAL_ROWS.forEach(r => {
+        list.push({ slotId: `${r.id}_lead`, section: 'SEASONAL', role: 'lead', start: r.start, end: r.end, label: r.title });
+        list.push({ slotId: `${r.id}_assist`, section: 'SEASONAL', role: 'assist', start: r.start, end: r.end, label: r.title });
+      });
+
+      KINDY_ROWS.forEach(r => {
+        list.push({ slotId: `${r.id}_lead`, section: 'KINDY', role: 'lead', start: r.start, end: r.end, label: r.title });
+        list.push({ slotId: `${r.id}_assist`, section: 'KINDY', role: 'assist', start: r.start, end: r.end, label: r.title });
+        if (r.special1700) {
+          // 17:00 Bathroom & ABC runs 17:00 to 17:10 (1020 to 1030) and locks through 17:50
+          list.push({ slotId: 'kin_1700_abc', section: 'KINDY', role: 'lead', start: 1020, end: 1030, label: '17:00 Bathroom & ABC' });
+        }
+      });
+
+      ELEM_TOP_ROWS.forEach(r => {
+        list.push({ slotId: `${r.id}_lead`, section: 'ELEM', role: 'lead', start: r.start, end: r.end, label: r.title });
+        list.push({ slotId: `${r.id}_assist`, section: 'ELEM', role: 'assist', start: r.start, end: r.end, label: r.title });
+      });
+
+      // 16:15 Split Rooms
+      list.push({ slotId: 'elem_1615_ab_lead', section: 'ELEM_AB', role: 'lead', start: 975, end: 1000, label: '16:15 Room AB' });
+      list.push({ slotId: 'elem_1615_ab_assist', section: 'ELEM_AB', role: 'assist', start: 975, end: 1000, label: '16:15 Room AB' });
+      list.push({ slotId: 'elem_1615_c_lead', section: 'ELEM_C', role: 'lead', start: 975, end: 1000, label: '16:15 Room C' });
+      list.push({ slotId: 'elem_1615_c_assist', section: 'ELEM_C', role: 'assist', start: 975, end: 1000, label: '16:15 Room C' });
+
+      // 16:40 Clean Up
+      list.push({ slotId: 'elem_1640_ab_lead', section: 'ELEM_AB', role: 'lead', start: 1000, end: 1005, label: '16:40 Clean Up AB' });
+      list.push({ slotId: 'elem_1640_ab_assist', section: 'ELEM_AB', role: 'assist', start: 1000, end: 1005, label: '16:40 Clean Up AB' });
+      list.push({ slotId: 'elem_1640_c_lead', section: 'ELEM_C', role: 'lead', start: 1000, end: 1005, label: '16:40 Clean Up C' });
+      list.push({ slotId: 'elem_1640_c_assist', section: 'ELEM_C', role: 'assist', start: 1000, end: 1005, label: '16:40 Clean Up C' });
+
+      // 16:45 Snack
+      list.push({ slotId: 'elem_1645_lead', section: 'ELEM', role: 'lead', start: 1005, end: 1020, label: '16:45 2nd Snack' });
+      list.push({ slotId: 'elem_1645_assist', section: 'ELEM', role: 'assist', start: 1005, end: 1020, label: '16:45 2nd Snack' });
+
+      // Fix #3: Class 1 Language Development starts at 17:05 (1025) and ends at 17:50 (1070)
+      list.push({ slotId: 'elem_1700_beg', section: 'ELEM_BEG', role: 'lead', start: 1025, end: 1070, label: '17:05–17:50 Beginner' });
+      list.push({ slotId: 'elem_1700_int', section: 'ELEM_INT', role: 'lead', start: 1025, end: 1070, label: '17:05–17:50 Intermediate' });
+      list.push({ slotId: 'elem_1700_upp', section: 'ELEM_UPP', role: 'lead', start: 1025, end: 1070, label: '17:05–17:50 Upper Int.' });
+
+      // 18:00 Presentation
+      list.push({ slotId: 'elem_1800_beg', section: 'ELEM_BEG', role: 'lead', start: 1080, end: 1085, label: '18:00 Pres. Beg.' });
+      list.push({ slotId: 'elem_1800_int', section: 'ELEM_INT', role: 'lead', start: 1080, end: 1085, label: '18:00 Pres. Int.' });
+      list.push({ slotId: 'elem_1800_upp', section: 'ELEM_UPP', role: 'lead', start: 1080, end: 1085, label: '18:00 Pres. Upp.' });
+
+      // 18:05 Reading Tree
+      list.push({ slotId: 'elem_1805_beg', section: 'ELEM_BEG', role: 'lead', start: 1085, end: 1095, label: '18:05 Reading Beg.' });
+      list.push({ slotId: 'elem_1805_int', section: 'ELEM_INT', role: 'lead', start: 1085, end: 1095, label: '18:05 Reading Int.' });
+      list.push({ slotId: 'elem_1805_upp', section: 'ELEM_UPP', role: 'lead', start: 1085, end: 1095, label: '18:05 Reading Upp.' });
+
+      // 18:15 Homework
+      list.push({ slotId: 'elem_1815_beg', section: 'ELEM_BEG', role: 'lead', start: 1095, end: 1125, label: '18:15 Homework Beg.' });
+      list.push({ slotId: 'elem_1815_int', section: 'ELEM_INT', role: 'lead', start: 1095, end: 1125, label: '18:15 Homework Int.' });
+      list.push({ slotId: 'elem_1815_upp', section: 'ELEM_UPP', role: 'lead', start: 1095, end: 1125, label: '18:15 Homework Upp.' });
+
+      // Dynamic Pre-Set Prime Class Window (Core: 18:00 - 19:30)
+      const effectivePrimeTime = map['prime_time'] || (map['prime_lead'] ? PRIME_CORE_TIME : '');
+      const primeRange = parseTimeRangeString(effectivePrimeTime);
+      if (primeRange && map['prime_lead']) {
+        list.push({
+          slotId: 'prime_lead',
+          section: 'PRIME',
+          role: 'lead',
+          start: primeRange.start,
+          end: primeRange.end,
+          label: `Prime Class (${effectivePrimeTime})`
+        });
+      }
+
+      // Dynamic Pre-Set Hallo Class Windows (Time Range 1, Time Range 2, Time Range 3)
+      [1, 2, 3].forEach(idx => {
+        const hTimeStr = map[`hallo_time${idx}`];
+        const hRange = parseTimeRangeString(hTimeStr);
+        if (hRange && map['hallo_lead']) {
+          list.push({
+            slotId: idx === 1 ? 'hallo_lead' : `hallo_lead_${idx}`,
+            virtualTeacher: map['hallo_lead'],
+            section: 'HALLO',
+            role: 'lead',
+            start: hRange.start,
+            end: hRange.end,
+            label: `Hallo Class ${idx} (${hTimeStr})`
+          });
+        }
+      });
+
+      // Dynamic Pre-Set Bus Driving & Bus Staff Windows
+      const busWindows = getBusDutyWindows(map);
+      busWindows.forEach(bw => list.push(bw));
+
+      return list;
+    }
+
+    function getSlotMeta(slotId, customSlots) {
+      return getAllTimedSlots(customSlots).find(s => s.slotId === slotId) || null;
+    }
+
+    function timesOverlap(aStart, aEnd, bStart, bEnd) {
+      return Math.max(aStart, bStart) < Math.min(aEnd, bEnd);
+    }
+
+    function checkTeacherConflictForSlot(teacherName, targetSlotId, customSlots) {
+      const map = customSlots || state.slots;
+      const allTimed = getAllTimedSlots(map);
+      const target = allTimed.find(s => s.slotId === targetSlotId);
+      if (!target) return null;
+
+      for (const other of allTimed) {
+        if (other.slotId === targetSlotId) continue;
+        if (!timesOverlap(target.start, target.end, other.start, other.end)) continue;
+
+        const effVal = other.virtualTeacher || getEffectiveSlotValue(other.slotId, map);
+        const names = extractTeacherNames(effVal);
+        if (!names.includes(teacherName)) continue;
+
+        if (target.role === 'lead' && other.role === 'lead') {
+          return `Busy: ${other.label}`;
+        }
+        if (target.role === 'assist' && other.role === 'lead') {
+          return `Busy: ${other.label}`;
+        }
+        if (target.role === 'lead' && other.role === 'assist') {
+          return `Assisting ${other.label}`;
+        }
+      }
+      return null;
+    }
+
+    function scanAllBoardConflicts() {
+      const conflicts = new Set();
+      const allTimed = getAllTimedSlots(state.slots);
+
+      for (let i = 0; i < allTimed.length; i++) {
+        const a = allTimed[i];
+        const aNames = extractTeacherNames(a.virtualTeacher || getEffectiveSlotValue(a.slotId));
+        if (!aNames.length) continue;
+
+        for (let j = i + 1; j < allTimed.length; j++) {
+          const b = allTimed[j];
+          if (!timesOverlap(a.start, a.end, b.start, b.end)) continue;
+          const bNames = extractTeacherNames(b.virtualTeacher || getEffectiveSlotValue(b.slotId));
+          if (!bNames.length) continue;
+
+          for (const t of aNames) {
+            if (!bNames.includes(t)) continue;
+            if ((a.role === 'lead' && b.role === 'lead') || (a.role !== b.role)) {
+              conflicts.add(a.slotId);
+              conflicts.add(b.slotId);
+            }
+          }
+        }
+      }
+      return conflicts;
+    }
+
+    /********************************************************************
+     * 4. BUILD DOM STRUCTURES FOR DESKTOP SHEET
+     ********************************************************************/
+    function buildDesktopDOM() {
+      const staffContainer = document.getElementById('staffGridContainer');
+      staffContainer.innerHTML = STAFF_CARDS.map(c => `
+        <div class="staff-card">
+          <div class="staff-line">
+            <span class="staff-lbl">${c.role}</span>
+            <div id="slot_${c.id}_name" class="slot-box" style="flex:1; min-height:17px;" data-placeholder="Name" onclick="openSlotPicker('${c.id}_name')"></div>
+          </div>
+          <div class="staff-line">
+            <span class="staff-lbl">Shift:</span>
+            <div id="slot_${c.id}_shift" class="slot-box" style="flex:1; min-height:17px;" data-placeholder="${c.id === 'staff_1' ? 'Blank' : '11 - 20'}" onclick="openSlotPicker('${c.id}_shift')"></div>
+          </div>
+          <div class="staff-line">
+            <span class="staff-lbl">${c.isDirector ? 'Lunch:' : 'Prep:'}</span>
+            <div id="slot_${c.id}_prep" class="slot-box" style="flex:1; min-height:17px;" data-placeholder="—" onclick="openSlotPicker('${c.id}_prep')"></div>
+          </div>
+          <div class="staff-line">
+            <span class="staff-lbl">${c.isDirector ? 'Important:' : 'Lunch:'}</span>
+            <div id="slot_${c.id}_lunch" class="slot-box" style="flex:1; min-height:17px;" data-placeholder="${c.isDirector ? '—' : '12 - 13'}" onclick="openSlotPicker('${c.id}_lunch')"></div>
+          </div>
+        </div>
+      `).join('');
+
+      const cleanContainer = document.getElementById('cleaningGridContainer');
+      cleanContainer.innerHTML = CLEANING_ROOMS.map((rm, idx) => `
+        <div style="${idx % 2 === 0 ? 'border-right:1px solid var(--border-mid);' : ''} border-bottom:1px solid var(--border-mid); padding:2px;">
+          <div style="font-size:8px; font-weight:800; color:#475569; text-align:center;">${rm.label}</div>
+          <div id="slot_${rm.id}" class="slot-box" style="min-height:22px;" data-placeholder="Pick" onclick="openSlotPicker('${rm.id}')"></div>
+        </div>
+      `).join('');
+
+      const seaContainer = document.getElementById('seasonalRowsContainer');
+      seaContainer.innerHTML = SEASONAL_ROWS.map((r, idx) => renderStandardRowHTML(r, idx === 0)).join('');
+
+      const kinContainer = document.getElementById('kindyRowsContainer');
+      kinContainer.innerHTML = KINDY_ROWS.map((r, idx) => renderStandardRowHTML(r, idx === 0)).join('');
+
+      const elemTopContainer = document.getElementById('elemTopRowsContainer');
+      elemTopContainer.innerHTML = ELEM_TOP_ROWS.map((r, idx) => renderStandardRowHTML(r, idx === 0)).join('');
+    }
+
+    function renderStandardRowHTML(row, showLaSubheader) {
+      const lockBadge = row.manualOnly
+        ? '<span style="font-size:8px; background:#fef3c7; color:#92400e; padding:0 4px; border-radius:3px;">✍️ Manual Only</span>'
+        : row.lockGroup === 'KINDY_1615_1700'
+        ? '<span style="font-size:8px; background:#dbeafe; color:#1e40af; padding:0 4px; border-radius:3px;">16:15–17:05 Same</span>'
+        : row.lockGroup === 'KINDY_1700_1750'
+        ? '<span style="font-size:8px; background:#fef3c7; color:#92400e; padding:0 4px; border-radius:3px;">17:00–17:50 Same</span>'
+        : '';
+
+      const actInputHTML = row.hasAct
+        ? `<div id="slot_${row.actSlot}" class="slot-box" style="min-height:16px; padding:0 12px 0 4px; background:#fff; border:1px solid #94a3b8; border-radius:3px; min-width:90px;" data-placeholder="Activity (Manual)" onclick="openSlotPicker('${row.actSlot}')"></div>`
+        : lockBadge;
+
+      if (row.special1700) {
+        return `
+          <div class="sched-block">
+            <div style="display:grid; grid-template-columns: 2fr 1fr; background:var(--sub-hdr); border-bottom:1px solid var(--border-mid); font-size:9px; font-weight:800;">
+              <div style="border-right:1px solid var(--border-mid); padding:2px 4px;">17:00–17:05 Parents Presentation</div>
+              <div style="padding:1px 4px; font-size:8px; background:#fde68a; color:#78350f;">17:00 Bathroom &amp; ABC (→17:50)</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; min-height:24px;">
+              <div id="slot_${row.id}_lead" class="slot-box" style="border-right:1px solid var(--border-mid);" data-placeholder="Lead (16:15)" onclick="openSlotPicker('${row.id}_lead')"></div>
+              <div id="slot_${row.id}_assist" class="slot-box" style="border-right:1px solid var(--border-mid);" data-placeholder="Assist" onclick="openSlotPicker('${row.id}_assist')"></div>
+              <div id="slot_kin_1700_abc" class="slot-box" style="background:rgba(254,243,199,0.4);" data-placeholder="ABC Lead" onclick="openSlotPicker('kin_1700_abc')"></div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (row.threeCols) {
+        return `
+          <div class="sched-block">
+            <div class="sched-hdr">
+              <span>${row.title}</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; background:#f5f5f4; border-bottom:1px solid var(--border-soft); font-size:7.5px; font-weight:700; text-align:center; color:#64748b;">
+              <div style="border-right:1px solid var(--border-mid);">Lead</div>
+              <div style="border-right:1px solid var(--border-mid);">Assist</div>
+              <div>Interpreter</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; min-height:24px;">
+              <div id="slot_${row.id}_lead" class="slot-box" style="border-right:1px solid var(--border-mid);" data-placeholder="Lead" onclick="openSlotPicker('${row.id}_lead')"></div>
+              <div id="slot_${row.id}_assist" class="slot-box" style="border-right:1px solid var(--border-mid);" data-placeholder="Assist" onclick="openSlotPicker('${row.id}_assist')"></div>
+              <div id="slot_${row.id}_interp" class="slot-box" data-placeholder="Interp." onclick="openSlotPicker('${row.id}_interp')"></div>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="sched-block ${row.lockGroup ? 'locked-continuing' : ''}">
+          <div class="sched-hdr">
+            <span>${row.title}</span>
+            ${actInputHTML}
+          </div>
+          ${showLaSubheader ? `
+            <div class="la-subhdr">
+              <div>Lead</div>
+              <div>Assist</div>
+            </div>
+          ` : ''}
+          <div class="la-grid">
+            <div id="slot_${row.id}_lead" class="slot-box" style="border-right:1px solid var(--border-mid);" data-placeholder="Lead" onclick="openSlotPicker('${row.id}_lead')"></div>
+            <div id="slot_${row.id}_assist" class="slot-box" data-placeholder="Assist" onclick="openSlotPicker('${row.id}_assist')"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    /********************************************************************
+     * 5. RENDER & REFRESH ALL SLOTS + MOBILE VIEW
+     ********************************************************************/
+    function refreshUI() {
+      document.body.classList.toggle('marker-mode', state.markerMode);
+      document.body.classList.toggle('digital-mode', !state.markerMode);
+      const fontBtn = document.getElementById('btnFontMode');
+      if (fontBtn) fontBtn.textContent = state.markerMode ? '✍️ Marker: ON' : '🔤 Digital: ON';
+
+      const isPhone = state.layoutMode === 'phone';
+      document.getElementById('desktopSheetWrapper').style.display = isPhone ? 'none' : 'block';
+      document.getElementById('mobileViewContainer').style.display = isPhone ? 'block' : 'none';
+      document.getElementById('btnModeSheet').classList.toggle('active', !isPhone);
+      document.getElementById('btnModePhone').classList.toggle('active', isPhone);
+
+      // Top bar pre-set summaries
+      const mVal = state.slots['meta_month'] || '—';
+      const dVal = state.slots['meta_day'] || '—';
+      const wVal = state.weekday || 'No Day';
+      document.getElementById('topDateSummary').textContent = `${mVal}/${dVal} (${wVal})`;
+
+      const pLead = state.slots['prime_lead'] || '—';
+      const pTime = state.slots['prime_time'] || PRIME_CORE_TIME;
+      document.getElementById('topPrimeSummary').textContent = `${pLead} (${pTime})`;
+
+      const hLead = state.slots['hallo_lead'] || 'Koi';
+      const hRanges = [state.slots['hallo_time1'], state.slots['hallo_time2'], state.slots['hallo_time3']].filter(Boolean);
+      document.getElementById('topHalloSummary').textContent = `${hLead} (${hRanges.length ? hRanges.join(', ') : 'No time'})`;
+
+      const busParts = [];
+      if (state.slots['bus_staff1']) busParts.push(`${state.slots['bus_staff1']} ${state.slots['bus_time1'] || ''}`.trim());
+      if (state.slots['bus_staff2']) busParts.push(`${state.slots['bus_staff2']} ${state.slots['bus_time2'] || ''}`.trim());
+      document.getElementById('topBusSummary').textContent = busParts.length ? busParts.join(' | ') : (state.slots['bus_box'] ? 'Custom Note' : 'Not set');
+
+      document.querySelectorAll('.day-pill').forEach(el => {
+        el.classList.toggle('active', el.getAttribute('data-day') === state.weekday);
+      });
+
+      const conflicts = scanAllBoardConflicts();
+      const badge = document.getElementById('conflictStatusBadge');
+      if (conflicts.size === 0) {
+        badge.className = 'badge-ok';
+        badge.textContent = '✓ 0 Overlaps';
+      } else {
+        badge.className = 'badge-warn';
+        badge.textContent = `⚠️ ${conflicts.size} Overlap(s)`;
+      }
+
+      document.querySelectorAll('#paperSheet .slot-box').forEach(el => {
+        const slotId = el.id.replace(/^slot_/, '');
+        const val = (state.slots[slotId] || '').trim();
+        const effVal = getEffectiveSlotValue(slotId);
+
+        el.classList.toggle('slot-empty', !val);
+        el.classList.toggle('conflict-cell', conflicts.has(slotId));
+
+        const isSpotlit = state.spotlightTeacher && (
+          val.toLowerCase().includes(state.spotlightTeacher.toLowerCase()) ||
+          effVal.toLowerCase().includes(state.spotlightTeacher.toLowerCase())
+        );
+        el.classList.toggle('hl-match', Boolean(isSpotlit));
+
+        const isArrow = val === '↓';
+        const subHint = isArrow && effVal ? `<span style="font-size:8px; color:#64748b; margin-left:3px;">(${escapeHTML(effVal)})</span>` : '';
+
+        el.innerHTML = `
+          <span class="slot-val ${isArrow ? 'slot-arrow' : ''}" style="${slotId.includes('notice') || slotId.includes('bus_box') || slotId.includes('notes') ? 'white-space:pre-line; font-size:11px;' : ''}">${escapeHTML(val)}${subHint}</span>
+          <span class="slot-caret">▾</span>
+        `;
+      });
+
+      renderSpotlightChips();
+      if (isPhone) renderMobileCards(conflicts);
+      saveState();
+    }
+
+    function renderSpotlightChips() {
+      const box = document.getElementById('spotlightChips');
+      const all = [...LEAD_ASSIST_TEACHERS, ...CORE_DIRECTORS];
+      box.innerHTML = all.map(t => `
+        <button class="t-chip ${state.spotlightTeacher === t ? 'active-hl' : ''}" onclick="setSpotlight('${t}')">${t}</button>
+      `).join('');
+      document.getElementById('btnClearSpotlight').style.display = state.spotlightTeacher ? 'inline-block' : 'none';
+    }
+
+    function setSpotlight(t) {
+      state.spotlightTeacher = state.spotlightTeacher === t ? null : t;
+      refreshUI();
+    }
+
+    /********************************************************************
+     * 6. SCREENSHOT / CAMERA FULL-PAPER PREVIEW MODE
+     ********************************************************************/
+    function toggleScreenshotMode(enable) {
+      document.body.classList.toggle('screenshot-mode', enable);
+      document.body.classList.remove('hide-hud');
+      if (enable) {
+        fitPaperForScreenshot();
+        window.addEventListener('resize', fitPaperForScreenshot);
+        showToast('📸 Full-Paper Camera Mode! Tap "Hide Bar" to take a clean screenshot.');
+      } else {
+        window.removeEventListener('resize', fitPaperForScreenshot);
+        const sheet = document.getElementById('paperSheet');
+        const scrollBox = document.getElementById('paperScrollBox');
+        if (sheet) sheet.style.transform = '';
+        if (scrollBox) scrollBox.style.height = '';
+      }
+    }
+
+    function toggleHudOpacity() {
+      document.body.classList.toggle('hide-hud');
+    }
+
+    function fitPaperForScreenshot() {
+      if (!document.body.classList.contains('screenshot-mode')) return;
+      const sheet = document.getElementById('paperSheet');
+      const scrollBox = document.getElementById('paperScrollBox');
+      if (!sheet || !scrollBox) return;
+
+      sheet.style.transform = 'none';
+      const naturalW = 1460;
+      const naturalH = sheet.offsetHeight || 960;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      const scaleX = (vw - 8) / naturalW;
+      const scaleY = (vh - 8) / naturalH;
+      const scale = Math.min(scaleX, scaleY, 1);
+
+      sheet.style.transformOrigin = 'top center';
+      sheet.style.transform = `scale(${scale})`;
+      scrollBox.style.height = `${Math.ceil(naturalH * scale + 8)}px`;
+    }
+
+    /********************************************************************
+     * 7. MOBILE PHONE CARDS RENDERER
+     ********************************************************************/
+    function switchMobileTab(tab) {
+      state.mobileTab = tab;
+      document.querySelectorAll('#mobileBottomNav .m-nav-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
+      });
+      refreshUI();
+    }
+
+    function mSlotBtn(slotId, placeholder) {
+      const val = (state.slots[slotId] || '').trim();
+      const eff = getEffectiveSlotValue(slotId);
+      const hint = val === '↓' && eff ? ` (${eff})` : '';
+      return `
+        <button class="slot-box" style="width:100%; min-height:36px; border:1.5px solid #cbd5e1; border-radius:8px; background:#f8fafc; padding:4px 16px 4px 8px;" onclick="openSlotPicker('${slotId}')">
+          <span class="slot-val">${val ? escapeHTML(val + hint) : `<span style="color:#94a3b8; font-size:11px; font-family:sans-serif;">${placeholder}</span>`}</span>
+          <span class="slot-caret">▾</span>
+        </button>
+      `;
+    }
+
+    function renderMobileCards() {
+      const container = document.getElementById('mobileViewContainer');
+      const tab = state.mobileTab;
+
+      const topBanner = `
+        <div class="m-card" style="background:#1e293b; color:#fff; border-color:#334155; padding:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
+            <div style="font-size:12px; font-weight:800;">⭐ 1. Set Date, Prime, Hallo (3x) &amp; Bus → 2. Auto-Fill</div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-indigo" onclick="autoFillSchedule()">🎲 Auto-Fill Lead &amp; Assist</button>
+              <button class="btn btn-camera" onclick="toggleScreenshotMode(true)">📸 Screenshot</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      if (tab === 'staff') {
+        container.innerHTML = topBanner + `
+          <!-- Step 1A: Date & Day (Set First Before Auto-Fill) -->
+          <div class="m-card" style="border-color:#3b82f6;">
+            <div class="m-card-hdr" style="background:#1d4ed8;">
+              <span>📅 Step 1A: Set Date &amp; Day First (Preserved on Auto-Fill)</span>
+            </div>
+            <div style="padding:10px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; gap:4px; width:140px;">
+                ${mSlotBtn('meta_month', 'MM')}
+                <b>/</b>
+                ${mSlotBtn('meta_day', 'DD')}
+              </div>
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                ${['Mon','Tue','Wed','Thu','Fri'].map(d => `
+                  <span class="day-pill ${state.weekday === d ? 'active' : ''}" onclick="selectWeekday('${d}')">${d}</span>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 1B: Pre-Set Prime (18:00-19:30) & Hallo (3 Time Ranges) -->
+          <div class="m-card" style="border-color:#f59e0b;">
+            <div class="m-card-hdr" style="background:#b45309;">
+              <span>⭐ Step 1B: Pre-Set Prime &amp; Hallo (3 Time Ranges)</span>
+            </div>
+            <div style="padding:10px; display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div style="border:1px solid #bae6fd; background:#f0f9ff; padding:8px; border-radius:8px;">
+                <div style="font-weight:800; font-size:11px; color:#0369a1; margin-bottom:4px;">Prime Class (Core 18:00–19:30)</div>
+                <div style="font-size:10px; color:#475569;">Lead Teacher:</div>
+                ${mSlotBtn('prime_lead', 'Pick Prime Lead')}
+                <div style="font-size:10px; color:#475569; margin-top:4px;">Core Time Window:</div>
+                ${mSlotBtn('prime_time', '18:00 - 19:30')}
+              </div>
+              <div style="border:1px solid #fde68a; background:#fffbeb; padding:8px; border-radius:8px;">
+                <div style="font-weight:800; font-size:11px; color:#b45309; margin-bottom:4px;">Hallo Class (Koi Only)</div>
+                <div style="font-size:10px; color:#92400e;">Lead Teacher:</div>
+                ${mSlotBtn('hallo_lead', 'Koi')}
+                <div style="font-size:10px; color:#92400e; margin-top:4px;">Time Range 1:</div>
+                ${mSlotBtn('hallo_time1', 'Range 1 (e.g. 16:00-17:00)')}
+                <div style="font-size:10px; color:#92400e; margin-top:4px;">Time Range 2:</div>
+                ${mSlotBtn('hallo_time2', 'Range 2 (Optional)')}
+                <div style="font-size:10px; color:#92400e; margin-top:4px;">Time Range 3:</div>
+                ${mSlotBtn('hallo_time3', 'Range 3 (Optional)')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 1C: Pre-Set Bus Driving & Bus Staff Before Auto-Fill -->
+          <div class="m-card" style="border-color:#10b981;">
+            <div class="m-card-hdr" style="background:#047857;">
+              <span>🚌 Step 1C: Pre-Set Bus Driving &amp; Bus Staff (No Overlap)</span>
+            </div>
+            <div style="padding:10px; display:flex; flex-direction:column; gap:6px;">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                <div>
+                  <div style="font-size:10px; font-weight:700; color:#475569;">Bus Staff 1</div>
+                  ${mSlotBtn('bus_staff1', 'Pick Staff 1')}
+                </div>
+                <div>
+                  <div style="font-size:10px; font-weight:700; color:#475569;">Bus Time 1</div>
+                  ${mSlotBtn('bus_time1', 'e.g. 17:55 ~ 19:45')}
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                <div>
+                  <div style="font-size:10px; font-weight:700; color:#475569;">Bus Staff 2</div>
+                  ${mSlotBtn('bus_staff2', 'Pick Staff 2')}
+                </div>
+                <div>
+                  <div style="font-size:10px; font-weight:700; color:#475569;">Bus Time / Route 2</div>
+                  ${mSlotBtn('bus_time2', 'walk to Rainbow')}
+                </div>
+              </div>
+              <div>
+                <div style="font-size:10px; font-weight:700; color:#475569;">Additional Bus Notes:</div>
+                ${mSlotBtn('bus_box', 'Tap to add extra bus notes...')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Staff Shifts -->
+          <div class="m-card">
+            <div class="m-card-hdr">
+              <span>👥 Staff Shifts (Teachers: 11-20 | Kato: Blank)</span>
+              <button class="btn" style="padding:2px 8px; font-size:10px;" onclick="applyCoreShiftsOnly()">⚡ Core Shifts</button>
+            </div>
+            <div style="padding:10px; display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              ${STAFF_CARDS.map(c => `
+                <div style="border:1px solid #cbd5e1; border-radius:8px; padding:6px;">
+                  <div style="font-size:10px; font-weight:800; color:#475569;">${c.role}</div>
+                  ${mSlotBtn(`${c.id}_name`, 'Name')}
+                  <div style="font-size:9px; color:#64748b; margin-top:4px;">Shift / Lunch</div>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">
+                    ${mSlotBtn(`${c.id}_shift`, c.id === 'staff_1' ? 'Blank' : '11-20')}
+                    ${mSlotBtn(`${c.id}_lunch`, c.isDirector ? '—' : '12-13')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else if (tab === 'kindy') {
+        container.innerHTML = topBanner + `
+          <div class="m-card">
+            <div class="m-card-hdr" style="background:var(--hdr-kindy);">
+              <span>🧸 KINDY (14:30 ~ 18:20)</span>
+              <span style="font-size:10px; color:#fde68a;">🔒 16:15–17:05 &amp; 17:00–17:50 • Assist ( )</span>
+            </div>
+            <div style="padding:10px; display:flex; flex-direction:column; gap:8px;">
+              ${KINDY_ROWS.map(r => `
+                <div style="border:1px solid #cbd5e1; border-radius:8px; padding:8px; ${r.lockGroup ? 'background:#eff6ff;' : ''}">
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-weight:800; font-size:12px; margin-bottom:6px;">
+                    <span>${r.title}</span>
+                    ${r.hasAct ? `<div style="width:135px;">${mSlotBtn(r.actSlot, 'Pick Activity')}</div>` : ''}
+                  </div>
+                  ${r.special1700 ? `
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+                      ${mSlotBtn(`${r.id}_lead`, '17:00–17:05 Lead')}
+                      ${mSlotBtn(`${r.id}_assist`, 'Assist ( )')}
+                      ${mSlotBtn('kin_1700_abc', 'ABC Lead (→17:50)')}
+                    </div>
+                  ` : `
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                      ${mSlotBtn(`${r.id}_lead`, 'Lead')}
+                      ${mSlotBtn(`${r.id}_assist`, 'Assist ( )')}
+                    </div>
+                  `}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else if (tab === 'elem') {
+        container.innerHTML = topBanner + `
+          <div class="m-card">
+            <div class="m-card-hdr" style="background:var(--hdr-elem);">
+              <span>🎒 Elementary (13:50 ~ 18:45)</span>
+              <span style="font-size:10px; color:#fde68a;">13:50 Manual • Auto Assist</span>
+            </div>
+            <div style="padding:10px; display:flex; flex-direction:column; gap:8px;">
+              ${ELEM_TOP_ROWS.map(r => `
+                <div style="border:1px solid #cbd5e1; border-radius:8px; padding:8px; ${r.manualOnly ? 'background:#fffbeb;' : ''}">
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-weight:800; font-size:12px; margin-bottom:6px;">
+                    <span>${r.title}</span>
+                    ${r.manualOnly ? '<span style="font-size:10px; background:#fde68a; color:#92400e; padding:2px 6px; border-radius:4px;">✍️ Manual Only</span>' : ''}
+                  </div>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                    ${mSlotBtn(`${r.id}_lead`, 'Lead')}
+                    ${mSlotBtn(`${r.id}_assist`, 'Assist')}
+                  </div>
+                </div>
+              `).join('')}
+
+              <div style="border:2px solid #0f172a; border-radius:8px; padding:8px; background:#f8fafc;">
+                <div style="font-weight:800; font-size:12px; margin-bottom:6px;">16:15 Split Rooms (AB &amp; C)</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:6px;">
+                  ${mSlotBtn('elem_1615_ab_act', 'Room AB Activity')}
+                  ${mSlotBtn('elem_1615_c_act', 'Room C Activity')}
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                  ${mSlotBtn('elem_1615_ab_lead', 'AB Lead')}
+                  ${mSlotBtn('elem_1615_ab_assist', 'AB Assist')}
+                  ${mSlotBtn('elem_1615_c_lead', 'C Lead')}
+                  ${mSlotBtn('elem_1615_c_assist', 'C Assist')}
+                </div>
+              </div>
+
+              <div style="border:2px solid #0f172a; border-radius:8px; padding:8px; background:#f8fafc;">
+                <div style="font-weight:800; font-size:12px; margin-bottom:6px;">17:05 – 17:50 Class 1 Language Development (Beg / Int / Upp)</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+                  ${mSlotBtn('elem_1700_beg', 'Beginner')}
+                  ${mSlotBtn('elem_1700_int', 'Intermediate')}
+                  ${mSlotBtn('elem_1700_upp', 'Upper Int.')}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        container.innerHTML = topBanner + `
+          <div class="m-card">
+            <div class="m-card-hdr" style="background:var(--hdr-seasonal);">
+              <span>☀️ Seasonal (Manual Fill Only)</span>
+            </div>
+            <div style="padding:10px; display:flex; flex-direction:column; gap:8px;">
+              ${SEASONAL_ROWS.map(r => `
+                <div style="border:1px solid #cbd5e1; border-radius:8px; padding:8px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-weight:800; font-size:12px; margin-bottom:6px;">
+                    <span>${r.title}</span>
+                    ${r.hasAct ? `<div style="width:130px;">${mSlotBtn(r.actSlot, 'Pick Activity')}</div>` : ''}
+                  </div>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                    ${mSlotBtn(`${r.id}_lead`, 'Lead')}
+                    ${mSlotBtn(`${r.id}_assist`, 'Assist')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    /********************************************************************
+     * 8. SMART PICKER MODAL LOGIC (Enforces Overlaps + Kindy Locks)
+     ********************************************************************/
+    function classifySlot(slotId) {
+      if (slotId === 'hallo_lead') {
+        return { title: 'Hallo Class Lead (Koi Only)', section: 'Elementary • Hallo', type: 'hallo_lead', options: HALLO_LEAD_ONLY };
+      }
+      if (slotId === 'prime_time') {
+        return { title: 'Select Prime Class Time (Core: 18:00 - 19:30)', section: 'Pre-Auto-Fill Prime Time', type: 'preset', options: PRIME_TIME_PRESETS };
+      }
+      if (slotId === 'hallo_time1' || slotId === 'hallo_time2' || slotId === 'hallo_time3') {
+        return { title: 'Select Hallo Class Time Window', section: 'Pre-Auto-Fill Hallo Time (3 Ranges)', type: 'preset', options: HALLO_TIME_PRESETS };
+      }
+      if (slotId === 'bus_staff1' || slotId === 'bus_staff2') {
+        return { title: 'Select Bus Driving / Bus Staff', section: 'Pre-Auto-Fill Bus Staff', type: 'bus_staff', options: ALL_BUS_STAFF_OPTIONS };
+      }
+      if (slotId === 'bus_time1' || slotId === 'bus_time2') {
+        return { title: 'Select Bus Time / Route', section: 'Pre-Auto-Fill Bus Time', type: 'preset', options: BUS_TIME_PRESETS };
+      }
+      if (slotId === 'kin_1615_act' || slotId === 'kin_1750_act') {
+        return { title: 'Select Kindy Activity (Manual)', section: 'KINDY Activity List (7)', type: 'activity', options: KINDY_ACTIVITIES };
+      }
+      if (slotId === 'elem_1615_ab_act' || slotId === 'elem_1615_c_act' || slotId === 'sea_1110_act') {
+        return { title: 'Select Elementary Activity (Manual)', section: 'Elementary Activity List (8)', type: 'activity', options: ELEM_ACTIVITIES };
+      }
+      if (slotId.endsWith('_name')) {
+        const card = STAFF_CARDS.find(c => `${c.id}_name` === slotId);
+        if (card && card.isDirector) {
+          return { title: 'Select Core Director', section: 'Staff Roster', type: 'director', options: CORE_DIRECTORS };
+        }
+        return { title: 'Select Teacher', section: 'Staff Roster', type: 'teacher_staff', options: LEAD_ASSIST_TEACHERS };
+      }
+      if (slotId.endsWith('_shift')) {
+        return { title: 'Select Shift (Teachers Core: 11 - 20 | Kato: Blank)', section: 'Staff Shift', type: 'preset', options: SHIFT_PRESETS };
+      }
+      if (slotId.endsWith('_prep')) {
+        return { title: 'Select Prep / Director Lunch', section: 'Staff Prep', type: 'preset', options: [...PREP_PRESETS, ...LUNCH_PRESETS] };
+      }
+      if (slotId.endsWith('_lunch')) {
+        return { title: 'Select Lunch (Core: 12 - 13)', section: 'Staff Lunch', type: 'preset', options: LUNCH_PRESETS };
+      }
+      if (slotId === 'meta_month') {
+        return { title: 'Select Month (Set First Before Auto-Fill)', section: 'Date', type: 'preset', options: ['1','2','3','4','5','6','7','8','9','10','11','12'] };
+      }
+      if (slotId === 'meta_day') {
+        return { title: 'Select Day (Set First Before Auto-Fill)', section: 'Date', type: 'preset', options: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31'] };
+      }
+      if (slotId.startsWith('clean_')) {
+        return { title: 'Assign Cleaning Duty', section: 'Cleaning Duties', type: 'cleaning', options: LEAD_ASSIST_TEACHERS };
+      }
+      if (slotId.includes('notice') || slotId.includes('bus_box') || slotId.includes('notes') || slotId.includes('front') || slotId.includes('allergy')) {
+        return {
+          title: 'Select or Type Note',
+          section: 'Notes & Bus',
+          type: 'preset',
+          options: [
+            'Kato 17:55 ~ 19:45',
+            'Coulter -> walk to Rainbow club -> sheers',
+            '14 ~ 16 Kentaro, Kyoma, Soe, Matoi',
+            '-> front',
+            'None'
+          ]
+        };
+      }
+
+      const meta = getSlotMeta(slotId);
+      const isAssist = slotId.endsWith('_assist') || (meta && meta.role === 'assist');
+      return {
+        title: isAssist ? 'Select Assist Teacher (Manual)' : 'Select Lead Teacher',
+        section: meta ? meta.label : 'Schedule Slot',
+        type: isAssist ? 'assist' : 'lead',
+        options: LEAD_ASSIST_TEACHERS
+      };
+    }
+
+    function openSlotPicker(slotId) {
+      if (document.body.classList.contains('screenshot-mode')) return;
+      state.picker.activeSlot = slotId;
+      const info = classifySlot(slotId);
+
+      document.getElementById('pickerSectionLabel').textContent = info.section;
+      document.getElementById('pickerTitleLabel').textContent = info.title;
+
+      const allowModifiers = info.type === 'assist';
+      document.getElementById('pickerModifierRow').style.display = allowModifiers ? 'flex' : 'none';
+      if (!allowModifiers) {
+        state.picker.multiSelect = false;
+        state.picker.useBrackets = false;
+      }
+      updateModifierButtonsUI();
+
+      const banner = document.getElementById('pickerRuleBanner');
+      if (info.type === 'hallo_lead') {
+        banner.style.display = 'block';
+        banner.textContent = '🔒 Rule: Only Koi can Lead Hallo Class.';
+      } else if (slotId === 'prime_lead' || slotId === 'prime_time') {
+        banner.style.display = 'block';
+        banner.textContent = '⭐ Rule: Prime Class core time is 18:00 - 19:30 (auto-protected from overlap).';
+      } else if (slotId.startsWith('kin_1615') || slotId.startsWith('kin_1635') || slotId.startsWith('kin_1650') || slotId === 'kin_1700_lead') {
+        banner.style.display = 'block';
+        banner.textContent = '🔒 Rule: Kindy 16:15 to 17:05 (Parents Presentation) keeps the SAME Lead teacher.';
+      } else if (slotId === 'kin_1700_abc' || slotId.startsWith('kin_1710') || slotId.startsWith('kin_1725') || slotId.startsWith('kin_1740')) {
+        banner.style.display = 'block';
+        banner.textContent = '🔒 Rule: Kindy 17:00 (Bathroom & ABC) to 17:50 keeps the SAME Lead teacher.';
+      } else if (info.type === 'lead' || info.type === 'assist') {
+        banner.style.display = 'block';
+        banner.textContent = '🛡️ Overlap Guard: Teachers busy in Prime, Hallo (1–3), Bus Duty, or another section are blocked.';
+      } else {
+        banner.style.display = 'none';
+      }
+
+      document.getElementById('pickerCustomInput').value = state.slots[slotId] || '';
+      renderPickerOptionsGrid();
+      document.getElementById('pickerModal').classList.add('open');
+    }
+
+    function closeSlotPicker() {
+      document.getElementById('pickerModal').classList.remove('open');
+      state.picker.activeSlot = null;
+    }
+
+    function togglePickerMulti() {
+      state.picker.multiSelect = !state.picker.multiSelect;
+      updateModifierButtonsUI();
+      renderPickerOptionsGrid();
+    }
+
+    function togglePickerBrackets() {
+      state.picker.useBrackets = !state.picker.useBrackets;
+      updateModifierButtonsUI();
+      renderPickerOptionsGrid();
+    }
+
+    function updateModifierButtonsUI() {
+      const btnM = document.getElementById('btnModMulti');
+      const btnB = document.getElementById('btnModBracket');
+      const btnDone = document.getElementById('btnMultiDone');
+
+      btnM.textContent = `➕ Multi-Select: ${state.picker.multiSelect ? 'ON' : 'OFF'}`;
+      btnM.style.background = state.picker.multiSelect ? '#dbeafe' : '#f1f5f9';
+
+      btnB.textContent = `( ) Brackets: ${state.picker.useBrackets ? 'ON' : 'OFF'}`;
+      btnB.style.background = state.picker.useBrackets ? '#fef3c7' : '#f1f5f9';
+
+      btnDone.style.display = state.picker.multiSelect ? 'inline-flex' : 'none';
+    }
+
+    function renderPickerOptionsGrid() {
+      const slotId = state.picker.activeSlot;
+      if (!slotId) return;
+      const info = classifySlot(slotId);
+      const currentVal = (state.slots[slotId] || '').trim();
+      const grid = document.getElementById('pickerOptionsGrid');
+
+      grid.innerHTML = info.options.map(opt => {
+        let disabledReason = null;
+
+        if (info.type === 'lead' || info.type === 'assist') {
+          disabledReason = checkTeacherConflictForSlot(opt, slotId, state.slots);
+        }
+
+        const isSelected = currentVal.toLowerCase() === opt.toLowerCase() ||
+          (state.picker.multiSelect && currentVal.toLowerCase().includes(opt.toLowerCase()));
+        const displayLabel = state.picker.useBrackets ? `(${opt})` : opt;
+
+        return `
+          <button class="opt-btn ${isSelected ? 'selected' : ''}"
+                  ${disabledReason ? 'disabled' : ''}
+                  onclick="selectPickerOption('${escapeQuotes(opt)}')">
+            <span>${escapeHTML(displayLabel)}</span>
+            ${disabledReason ? `<span style="font-size:9px; font-weight:700; color:#dc2626;">🚫 ${escapeHTML(disabledReason)}</span>` : ''}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function propagateKindyLockedBlocks(slotId, chosenVal) {
+      if (slotId === 'kin_1615_lead' || slotId === 'kin_1635_lead' || slotId === 'kin_1650_lead' || slotId === 'kin_1700_lead') {
+        state.slots['kin_1615_lead'] = chosenVal;
+        state.slots['kin_1635_lead'] = '↓';
+        state.slots['kin_1650_lead'] = '↓';
+        state.slots['kin_1700_lead'] = '↓';
+      } else if (slotId === 'kin_1700_abc' || slotId === 'kin_1710_lead' || slotId === 'kin_1725_lead' || slotId === 'kin_1740_lead') {
+        state.slots['kin_1700_abc'] = chosenVal;
+        state.slots['kin_1710_lead'] = chosenVal;
+        state.slots['kin_1725_lead'] = '↓';
+        state.slots['kin_1740_lead'] = '↓';
+      }
+    }
+
+    function selectPickerOption(opt) {
+      const slotId = state.picker.activeSlot;
+      if (!slotId) return;
+      const info = classifySlot(slotId);
+
+      if (info.type === 'lead' || info.type === 'assist') {
+        const conflict = checkTeacherConflictForSlot(opt, slotId, state.slots);
+        if (conflict) return;
+      }
+
+      const formatted = state.picker.useBrackets ? `(${opt})` : opt;
+
+      if (state.picker.multiSelect && info.type === 'assist') {
+        const raw = (state.slots[slotId] || '').trim();
+        let parts = raw && raw !== '↓' ? raw.split(',').map(s => s.trim()).filter(Boolean) : [];
+        const existingIdx = parts.findIndex(p => p.replace(/[()]/g, '').toLowerCase() === opt.toLowerCase());
+        if (existingIdx >= 0) {
+          parts.splice(existingIdx, 1);
+        } else {
+          parts.push(formatted);
+        }
+        state.slots[slotId] = parts.join(', ');
+        refreshUI();
+        renderPickerOptionsGrid();
+      } else {
+        state.slots[slotId] = formatted;
+        // Fix #2: When Prime Lead is picked, ensure Prime Time defaults to Core 18:00 - 19:30 if empty
+        if (slotId === 'prime_lead' && !state.slots['prime_time']) {
+          state.slots['prime_time'] = PRIME_CORE_TIME;
+        }
+        propagateKindyLockedBlocks(slotId, formatted);
+        refreshUI();
+        closeSlotPicker();
+      }
+    }
+
+    function pickContinuationArrow() {
+      const slotId = state.picker.activeSlot;
+      if (!slotId) return;
+
+      const tempSlots = Object.assign({}, state.slots, { [slotId]: '↓' });
+      const inherited = getEffectiveSlotValue(slotId, tempSlots);
+      const names = extractTeacherNames(inherited);
+
+      for (const t of names) {
+        const conflict = checkTeacherConflictForSlot(t, slotId, tempSlots);
+        if (conflict) {
+          showToast(`🚫 Cannot use ↓ here: ${t} is already ${conflict}.`);
+          return;
+        }
+      }
+
+      state.slots[slotId] = '↓';
+      refreshUI();
+      closeSlotPicker();
+    }
+
+    function clearActiveSlot() {
+      const slotId = state.picker.activeSlot;
+      if (!slotId) return;
+      delete state.slots[slotId];
+      refreshUI();
+      closeSlotPicker();
+    }
+
+    function applyCustomInput() {
+      const slotId = state.picker.activeSlot;
+      if (!slotId) return;
+      const val = document.getElementById('pickerCustomInput').value.trim();
+
+      if (slotId === 'hallo_lead' && val && val.toLowerCase() !== 'koi') {
+        showToast('🔒 Rule: Only Koi can Lead the Hallo Class.');
+        return;
+      }
+
+      if (val) {
+        state.slots[slotId] = val;
+        if (slotId === 'prime_lead' && !state.slots['prime_time']) {
+          state.slots['prime_time'] = PRIME_CORE_TIME;
+        }
+        propagateKindyLockedBlocks(slotId, val);
+      } else {
+        delete state.slots[slotId];
+      }
+      refreshUI();
+      closeSlotPicker();
+    }
+
+    /********************************************************************
+     * 9. TRUE FISHER-YATES SHUFFLE AUTO-FILL (V9.0)
+     ********************************************************************/
+    function shuffleArray(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    // Check if `teacher` has any Prime, Hallo (1, 2, 3), or Bus Duty overlap during [startMin, endMin]
+    function isTeacherBusyInPreSetClasses(teacher, startMin, endMin, nextSlots) {
+      // 1. Prime Class check (Core: 18:00 - 19:30)
+      const pLead = nextSlots['prime_lead'];
+      const pTimeStr = nextSlots['prime_time'] || (pLead ? PRIME_CORE_TIME : '');
+      const pRange = parseTimeRangeString(pTimeStr);
+      if (pLead === teacher && pRange && timesOverlap(startMin, endMin, pRange.start, pRange.end)) {
+        return true;
+      }
+
+      // 2. Hallo Class check across all 3 Time Ranges
+      const hLead = nextSlots['hallo_lead'] || 'Koi';
+      if (hLead === teacher) {
+        for (let idx = 1; idx <= 3; idx++) {
+          const hRange = parseTimeRangeString(nextSlots[`hallo_time${idx}`]);
+          if (hRange && timesOverlap(startMin, endMin, hRange.start, hRange.end)) {
+            return true;
+          }
+        }
+      }
+
+      // 3. Bus Driving & Bus Staff check
+      const busWindows = getBusDutyWindows(nextSlots);
+      for (const bw of busWindows) {
+        if (bw.virtualTeacher === teacher && timesOverlap(startMin, endMin, bw.start, bw.end)) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    // Fix #7: Kato shift is left completely blank even during Auto-Fill
+    function applyCoreShiftsToMap(targetMap) {
+      const coreTeacherOrder = ['Thomas', 'Anna', 'Mitchelle', 'Koi'];
+      const teacherCardIds = ['staff_2', 'staff_3', 'staff_5', 'staff_7'];
+
+      teacherCardIds.forEach((cid, idx) => {
+        targetMap[`${cid}_name`] = coreTeacherOrder[idx];
+        targetMap[`${cid}_shift`] = '11 - 20';
+        targetMap[`${cid}_prep`] = 'while Assist';
+        targetMap[`${cid}_lunch`] = '12 - 13';
+      });
+
+      // Director Kato: Name set, Shift left blank unless user manually filled it
+      targetMap['staff_1_name'] = 'Kato';
+      if (state.slots['staff_1_shift']) {
+        targetMap['staff_1_shift'] = state.slots['staff_1_shift'];
+      } else {
+        delete targetMap['staff_1_shift'];
+      }
+      if (state.slots['staff_1_prep']) targetMap['staff_1_prep'] = state.slots['staff_1_prep'];
+      if (state.slots['staff_1_lunch']) targetMap['staff_1_lunch'] = state.slots['staff_1_lunch'];
+
+      // Director 2 Coulter
+      targetMap['staff_4_name'] = 'Coulter';
+      targetMap['staff_4_shift'] = state.slots['staff_4_shift'] || '~ 18';
+      targetMap['staff_4_prep'] = state.slots['staff_4_prep'] || 'おまかせ';
+    }
+
+    function applyCoreShiftsOnly() {
+      applyCoreShiftsToMap(state.slots);
+      refreshUI();
+      showToast('⚡ Core shifts (11-20) applied! (Kato shift left blank)');
+    }
+
+    function autoFillSchedule() {
+      // Fix #1, #2: Preserve manually set Date/Day, 13:50 Early Kids, Bus Staff/Times, Prime (18:00-19:30), and Hallo (3 Time Ranges)
+      const preservedKeys = [
+        'meta_month', 'meta_day',
+        'notice_box',
+        'bus_staff1', 'bus_time1', 'bus_staff2', 'bus_time2', 'bus_box',
+        'allergy_kindy', 'allergy_elem',
+        'seasonal_notes', 'seasonal_hallo_notes', 'front_note',
+        'prime_lead', 'prime_time',
+        'hallo_lead', 'hallo_time1', 'hallo_time2', 'hallo_time3',
+        'sea_1110_act', 'kin_1615_act', 'kin_1750_act',
+        'elem_1615_ab_act', 'elem_1615_c_act',
+        'staff_1_shift', 'staff_1_prep', 'staff_1_lunch',
+        // Fix #1: 13:50 Early Kids is strictly Manual Fill Only
+        'ele_1350_lead', 'ele_1350_assist'
+      ];
+
+      const next = {};
+      preservedKeys.forEach(k => {
+        if (state.slots[k]) next[k] = state.slots[k];
+      });
+
+      // Seasonal stays untouched / blank unless manually filled
+      SEASONAL_ROWS.forEach(r => {
+        if (state.slots[`${r.id}_lead`]) next[`${r.id}_lead`] = state.slots[`${r.id}_lead`];
+        if (state.slots[`${r.id}_assist`]) next[`${r.id}_assist`] = state.slots[`${r.id}_assist`];
+        if (state.slots[`${r.id}_interp`]) next[`${r.id}_interp`] = state.slots[`${r.id}_interp`];
+      });
+
+      if (!next['hallo_lead']) next['hallo_lead'] = 'Koi';
+      if (!next['prime_time']) next['prime_time'] = PRIME_CORE_TIME;
+
+      // Apply Core Shifts (Kato shift remains blank)
+      applyCoreShiftsToMap(next);
+
+      // Fix #2: Strict Lead picker that NEVER picks a teacher who is in Hallo, Prime, or Bus
+      function pickRandomLead(startMin, endMin, excludeTeachers = [], preferredAvoid = null) {
+        const freeFromPreSet = LEAD_ASSIST_TEACHERS.filter(t =>
+          !isTeacherBusyInPreSetClasses(t, startMin, endMin, next)
+        );
+        let candidates = shuffleArray(freeFromPreSet).filter(t =>
+          !excludeTeachers.includes(t)
+        );
+        if (candidates.length > 1 && preferredAvoid && candidates.includes(preferredAvoid)) {
+          candidates = candidates.filter(t => t !== preferredAvoid);
+        }
+        if (candidates.length === 0) {
+          // Even if all non-excluded teachers are busy, still strictly pick from freeFromPreSet if any exist
+          candidates = shuffleArray(freeFromPreSet);
+        }
+        return candidates[0] || '';
+      }
+
+      // Helper to get all teachers available to Assist during [startMin, endMin]
+      // (Not in excludeLeads AND not in Hallo, Prime, or Bus)
+      function getAvailableAssistTeachers(startMin, endMin, activeLeads = []) {
+        return LEAD_ASSIST_TEACHERS.filter(t =>
+          !activeLeads.includes(t) &&
+          !isTeacherBusyInPreSetClasses(t, startMin, endMin, next)
+        );
+      }
+
+      // Format Kindy Assist in brackets: e.g. "(Anna)" or "(Anna, Mitchelle)"
+      function formatKindyAssist(arr) {
+        if (!arr || arr.length === 0) return '';
+        return `(${arr.join(', ')})`;
+      }
+
+      // Format Elementary Assist as comma-separated: e.g. "Anna, Mitchelle"
+      function formatElemAssist(arr) {
+        if (!arr || arr.length === 0) return '';
+        return arr.join(', ');
+      }
+
+      // Synchronized 30-Minute Blocks from 14:30 to 16:00 (13:50 Early Kids is skipped / manual only)
+      const sync30Blocks = [
+        { start: 870, end: 900, kin: ['kin_1430', 'kin_1445'], ele: ['ele_1430', 'ele_1445'] },
+        { start: 900, end: 930, kin: ['kin_1500', 'kin_1515'], ele: ['ele_1500', 'ele_1515'] },
+        { start: 930, end: 960, kin: ['kin_1530'],             ele: ['ele_1530', 'ele_1555'] }
+      ];
+
+      let prevKindyLead = null;
+      let prevElemLead = extractTeacherNames(next['ele_1350_lead'])[0] || null;
+      let prevKindyAssistStr = '';
+      let prevElemAssistStr = '';
+
+      sync30Blocks.forEach(blk => {
+        const kLead = pickRandomLead(blk.start, blk.end, [], prevKindyLead);
+        const eLead = pickRandomLead(blk.start, blk.end, [kLead], prevElemLead);
+
+        next[`${blk.kin[0]}_lead`] = kLead;
+        if (blk.kin[1]) next[`${blk.kin[1]}_lead`] = '↓';
+
+        next[`${blk.ele[0]}_lead`] = eLead;
+        if (blk.ele[1]) next[`${blk.ele[1]}_lead`] = '↓';
+
+        // Fix #3: Non-leading available teachers assist!
+        // Elementary gets all remaining available teachers (comma-separated);
+        // Kindy gets bracketed assist (e.g. first available in brackets, or all available in brackets)
+        const avail1 = getAvailableAssistTeachers(blk.start, blk.start + 15, [kLead, eLead]);
+        const kinAssist1 = formatKindyAssist(avail1.slice(0, 1));
+        const eleAssist1 = formatElemAssist(avail1);
+
+        if (kinAssist1) {
+          next[`${blk.kin[0]}_assist`] = (kinAssist1 === prevKindyAssistStr) ? '↓' : kinAssist1;
+          prevKindyAssistStr = kinAssist1;
+        }
+        if (eleAssist1) {
+          next[`${blk.ele[0]}_assist`] = (eleAssist1 === prevElemAssistStr) ? '↓' : eleAssist1;
+          prevElemAssistStr = eleAssist1;
+        }
+
+        // Second sub-row in the 30-min block (e.g. 14:45, 15:15, 15:55)
+        const subStart = blk.start + (blk.kin[0] === 'kin_1530' ? 25 : 15);
+        const avail2 = getAvailableAssistTeachers(subStart, blk.end, [kLead, eLead]);
+        const kinAssist2 = formatKindyAssist(avail2.slice(0, 1));
+        const eleAssist2 = formatElemAssist(avail2);
+
+        if (blk.kin[1] && kinAssist2) {
+          next[`${blk.kin[1]}_assist`] = (kinAssist2 === prevKindyAssistStr) ? '↓' : kinAssist2;
+          prevKindyAssistStr = kinAssist2;
+        }
+        if (blk.ele[1] && eleAssist2) {
+          next[`${blk.ele[1]}_assist`] = (eleAssist2 === prevElemAssistStr) ? '↓' : eleAssist2;
+          prevElemAssistStr = eleAssist2;
+        }
+
+        prevKindyLead = kLead;
+        prevElemLead = eLead;
+      });
+
+      // Kindy 16:00 - 16:15 Vocab Time (Elementary is still in 15:55-16:15 Social Development led by prevElemLead)
+      const kin1600Lead = pickRandomLead(960, 975, [prevElemLead], prevKindyLead);
+      next['kin_1600_lead'] = kin1600Lead;
+      const avail1600 = getAvailableAssistTeachers(960, 975, [kin1600Lead, prevElemLead]);
+      const kin1600Assist = formatKindyAssist(avail1600.slice(0, 1));
+      if (kin1600Assist) {
+        next['kin_1600_assist'] = (kin1600Assist === prevKindyAssistStr) ? '↓' : kin1600Assist;
+        prevKindyAssistStr = kin1600Assist;
+      }
+      prevKindyLead = kin1600Lead;
+
+      // LOCKED BLOCK 1: Kindy 16:15 to 17:05 Same Lead Teacher (975 to 1025)
+      const kin1615_1705_Lead = pickRandomLead(975, 1025, [], prevKindyLead);
+      next['kin_1615_lead'] = kin1615_1705_Lead;
+      next['kin_1635_lead'] = '↓';
+      next['kin_1650_lead'] = '↓';
+      next['kin_1700_lead'] = '↓';
+
+      // Elementary 16:15 - 16:45 Split Rooms (AB & C)
+      const ab1615Lead = pickRandomLead(975, 1005, [kin1615_1705_Lead], prevElemLead);
+      const c1615Lead = pickRandomLead(975, 1005, [kin1615_1705_Lead, ab1615Lead]);
+
+      next['elem_1615_ab_lead'] = ab1615Lead;
+      next['elem_1615_c_lead'] = c1615Lead;
+      next['elem_1640_ab_lead'] = '↓';
+      next['elem_1640_c_lead'] = '↓';
+
+      // Any 4th teacher not leading Kindy 16:15, Room AB, or Room C (and not in Hallo/Prime/Bus) assists!
+      const avail1615 = getAvailableAssistTeachers(975, 1005, [kin1615_1705_Lead, ab1615Lead, c1615Lead]);
+      if (avail1615.length > 0) {
+        const kin1615Ass = formatKindyAssist(avail1615);
+        next['kin_1615_assist'] = (kin1615Ass === prevKindyAssistStr) ? '↓' : kin1615Ass;
+        next['kin_1635_assist'] = '↓';
+        prevKindyAssistStr = kin1615Ass;
+
+        const ele1615Ass = formatElemAssist(avail1615);
+        next['elem_1615_ab_assist'] = ele1615Ass;
+        next['elem_1640_ab_assist'] = '↓';
+        prevElemAssistStr = ele1615Ass;
+      } else {
+        prevKindyAssistStr = '';
+        prevElemAssistStr = '';
+      }
+
+      // Elementary 16:45 - 17:00 2nd Snack Lead & Assist (while Kindy is in 16:50 Class Presentation)
+      const elem1645Lead = pickRandomLead(1005, 1020, [kin1615_1705_Lead], ab1615Lead);
+      next['elem_1645_lead'] = elem1645Lead;
+      const avail1645 = getAvailableAssistTeachers(1005, 1020, [kin1615_1705_Lead, elem1645Lead]);
+      if (avail1645.length > 0) {
+        const kin1650Ass = formatKindyAssist(avail1645.slice(0, 1));
+        next['kin_1650_assist'] = (kin1650Ass === prevKindyAssistStr) ? '↓' : kin1650Ass;
+        prevKindyAssistStr = kin1650Ass;
+
+        const ele1645Ass = formatElemAssist(avail1645);
+        next['elem_1645_assist'] = ele1645Ass;
+      } else {
+        prevKindyAssistStr = '';
+      }
+
+      // LOCKED BLOCK 2: Kindy 17:00 (Bathroom & ABC) to 17:50 Same Lead Teacher (1020 to 1070)
+      const kin1700_1750_Lead = pickRandomLead(1020, 1070, [kin1615_1705_Lead], kin1615_1705_Lead);
+      next['kin_1700_abc'] = kin1700_1750_Lead;
+      next['kin_1710_lead'] = kin1700_1750_Lead;
+      next['kin_1725_lead'] = '↓';
+      next['kin_1740_lead'] = '↓';
+
+      // At 17:00-17:05 (1020-1025), Elementary 17:05 hasn't started yet, so teachers not leading kin_1700 or kin_1700_abc can assist 17:00 Parents Presentation
+      const avail1700 = getAvailableAssistTeachers(1020, 1025, [kin1615_1705_Lead, kin1700_1750_Lead]);
+      if (avail1700.length > 0) {
+        next['kin_1700_assist'] = formatKindyAssist(avail1700.slice(0, 1));
+      }
+
+      // Elementary 17:05 - 17:50 Class 1 Language Development (1025 to 1070)
+      const beg1705 = pickRandomLead(1025, 1070, [kin1700_1750_Lead]);
+      const int1705 = pickRandomLead(1025, 1070, [kin1700_1750_Lead, beg1705]);
+      const upp1705 = pickRandomLead(1025, 1070, [kin1700_1750_Lead, beg1705, int1705]);
+
+      next['elem_1700_beg'] = beg1705;
+      next['elem_1700_int'] = int1705;
+      next['elem_1700_upp'] = upp1705;
+
+      // Kindy 17:50 - 18:30 (Activity 2 -> 18:10 -> 18:20)
+      const kin1750Lead = pickRandomLead(1070, 1115, [], kin1700_1750_Lead);
+      next['kin_1750_lead'] = kin1750Lead;
+      next['kin_1810_lead'] = '↓';
+      next['kin_1820_lead'] = '↓';
+
+      // At 17:50 - 18:00 (1070 - 1080), Elementary 17:05-17:50 has finished and 18:00 hasn't started yet!
+      const avail1750 = getAvailableAssistTeachers(1070, 1080, [kin1750Lead]);
+      if (avail1750.length > 0) {
+        next['kin_1750_assist'] = formatKindyAssist(avail1750.slice(0, 1));
+      }
+
+      // Elementary 18:00 - 18:45 (Respects Prime 18:00-19:30, Hallo 1-3, Bus Duty & Kindy 17:50)
+      const beg1800 = pickRandomLead(1080, 1125, [kin1750Lead], beg1705);
+      const int1800 = pickRandomLead(1080, 1125, [kin1750Lead, beg1800], int1705);
+      const upp1800 = pickRandomLead(1080, 1125, [kin1750Lead, beg1800, int1800], upp1705);
+
+      next['elem_1800_beg'] = beg1800;
+      next['elem_1800_int'] = int1800;
+      next['elem_1800_upp'] = upp1800;
+
+      next['elem_1805_beg'] = beg1800 ? '↓' : '';
+      next['elem_1805_int'] = int1800 ? '↓' : '';
+      next['elem_1805_upp'] = upp1800 ? '↓' : '';
+      next['elem_1815_beg'] = beg1800 ? '↓' : '';
+      next['elem_1815_int'] = int1800 ? '↓' : '';
+      next['elem_1815_upp'] = upp1800 ? '↓' : '';
+
+      // If any teacher is still free at 18:10-18:30 (not leading Kindy 17:50 or Elem 18:00 and not in Prime/Hallo/Bus), assist Kindy
+      const avail1810 = getAvailableAssistTeachers(1090, 1115, [kin1750Lead, beg1800, int1800, upp1800].filter(Boolean));
+      if (avail1810.length > 0) {
+        next['kin_1810_assist'] = formatKindyAssist(avail1810.slice(0, 1));
+        next['kin_1820_assist'] = '↓';
+      }
+
+      // Shuffle Cleaning Duties among the 4 Lead/Assist teachers
+      const cleanPool = [...shuffleArray(LEAD_ASSIST_TEACHERS), ...shuffleArray(LEAD_ASSIST_TEACHERS)];
+      CLEANING_ROOMS.forEach((rm, i) => {
+        next[rm.id] = cleanPool[i % cleanPool.length];
+      });
+
+      state.slots = next;
+      refreshUI();
+      showToast('🎲 Auto-Filled Leads & Assists! (13:50 Manual • Hallo/Prime/Bus excluded • Kindy Assist in ())');
+    }
+
+    /********************************************************************
+     * 10. SAMPLE 8/27 LOADER, BLANK ALL MODAL & SAFE BOOTSTRAP
+     ********************************************************************/
+    function loadSample827() {
+      state.weekday = 'Thu';
+      state.slots = {
+        meta_month: '8',
+        meta_day: '27',
+        // Core Directors (Kato shift left blank per Rule #2)
+        staff_1_name: 'Kato',
+        staff_4_name: 'Coulter',
+        staff_4_shift: '~ 18',
+        staff_4_prep: 'おまかせ',
+        // Core Teachers (11-20 shift, 12-13 lunch)
+        staff_2_name: 'Thomas', staff_2_shift: '11 - 20', staff_2_prep: 'while Assist', staff_2_lunch: '12 - 13',
+        staff_3_name: 'Anna', staff_3_shift: '11 - 20', staff_3_prep: '11:10 ~ 12', staff_3_lunch: '12 - 13',
+        staff_5_name: 'Mitchelle', staff_5_shift: '11 - 20', staff_5_prep: 'while Assist', staff_5_lunch: '12 - 13',
+        staff_7_name: 'Koi', staff_7_shift: '11 - 20', staff_7_prep: '13:30 - 14', staff_7_lunch: '12 - 13',
+        // Notice & Bus Pre-Setup
+        notice_box: 'Nakamura Sana (6)\n16 - 17',
+        bus_staff1: 'Kato',
+        bus_time1: '17:55 ~ 19:45',
+        bus_staff2: 'Coulter',
+        bus_time2: 'walk to Rainbow club -> sheers',
+        bus_box: 'Kato 17:55 ~ 19:45\nCoulter -> walk to Rainbow club -> sheers',
+        // Seasonal Manual Notes
+        seasonal_hallo_notes: '14 ~ 16\nKentaro, Kyoma\nSoe, Matoi',
+        // Manual 13:50 Early Kids sample
+        ele_1350_lead: 'Mitchelle',
+        ele_1350_assist: 'Anna, Thomas',
+        // Pre-Set Prime (18:00 - 19:30) & Hallo (Koi Only, 3 Time Ranges)
+        prime_lead: 'Anna',
+        prime_time: '18:00 - 19:30',
+        hallo_lead: 'Koi',
+        hallo_time1: '16:00 - 17:00',
+        hallo_time2: '',
+        hallo_time3: '',
+        front_note: '-> front'
+      };
+      autoFillSchedule();
+      showToast('📋 Loaded 8/27 Sample & Auto-Filled Schedule!');
+    }
+
+    function openBlankConfirmModal() {
+      const modal = document.getElementById('blankConfirmModal');
+      if (modal) modal.classList.add('open');
+    }
+
+    function closeBlankConfirmModal() {
+      const modal = document.getElementById('blankConfirmModal');
+      if (modal) modal.classList.remove('open');
+    }
+
+    function executeBlankAll() {
+      state.slots = {
+        hallo_lead: 'Koi',
+        prime_time: PRIME_CORE_TIME
+      };
+      state.weekday = '';
+      state.spotlightTeacher = null;
+      closeBlankConfirmModal();
+      refreshUI();
+      showToast('🗑️ Schedule cleared to blank!');
+    }
+
+    function selectWeekday(day) {
+      state.weekday = state.weekday === day ? '' : day;
+      refreshUI();
+    }
+
+    function setLayoutMode(mode) {
+      state.layoutMode = mode;
+      refreshUI();
+    }
+
+    function toggleFontStyle() {
+      state.markerMode = !state.markerMode;
+      refreshUI();
+    }
+
+    function openPresetModal() {
+      const modal = document.getElementById('presetModal');
+      if (modal) modal.classList.add('open');
+    }
+
+    function closePresetModal() {
+      const modal = document.getElementById('presetModal');
+      if (modal) modal.classList.remove('open');
+    }
+
+    function escapeHTML(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function escapeQuotes(str) {
+      return String(str || '').replace(/'/g, "\\'");
+    }
+
+    function initApp() {
+      try {
+        buildDesktopDOM();
+        loadState();
+        refreshUI();
+      } catch (err) {
+        console.error('Initialization error:', err);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
+  </script>
+</body>
+</html>
