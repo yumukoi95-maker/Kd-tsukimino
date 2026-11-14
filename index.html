@@ -2,8 +2,105 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>KD Tsukimino Schedule Planner V13.0</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>KD Tsukimino Schedule Planner V13.2</title>
+
+  <!-- iOS, iPadOS & Android Full-Screen Standalone PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="KD Schedule" />
+  <meta name="application-name" content="KD Schedule" />
+  <meta name="theme-color" content="#0f172a" />
+  <link id="appleTouchIcon" rel="apple-touch-icon" sizes="512x512" />
+  <link id="favIcon" rel="icon" type="image/png" sizes="512x512" />
+  <link id="pwaManifestLink" rel="manifest" />
+
+  <!-- Built-In 512x512 KD Tsukimino School Icon (with "by T.Koi" watermark) & Dynamic PWA Manifest -->
+  <script>
+    (function initBuiltInSchoolAppIcon() {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+
+        // Deep Navy-Slate School Background
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, 512, 512);
+
+        // Subtle Radial Top Glow
+        const grad = ctx.createRadialGradient(256, 120, 20, 256, 256, 320);
+        grad.addColorStop(0, '#1e293b');
+        grad.addColorStop(1, '#0f172a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
+
+        // Gold School Crest Frame
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 22;
+        ctx.strokeRect(34, 34, 444, 444);
+
+        // Inner Thin Accent Line
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.35)';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(54, 54, 404, 404);
+
+        // "KD" Bold Emblem
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = '900 176px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('KD', 256, 182);
+
+        // "TSUKIMINO" School Banner
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '800 54px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText('TSUKIMINO', 256, 320);
+
+        // "SCHEDULE" Pill Tag
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(116, 362, 280, 44);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '900 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText('SCHEDULE', 256, 385);
+
+        // "by T.Koi" Signature Watermark inside the crest
+        ctx.fillStyle = '#fde68a';
+        ctx.font = 'italic 700 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText('by T.Koi', 256, 434);
+
+        const iconDataUrl = canvas.toDataURL('image/png');
+        window.__KD_APP_ICON_DATA_URL = iconDataUrl;
+
+        const appleIcon = document.getElementById('appleTouchIcon');
+        const favIcon = document.getElementById('favIcon');
+        if (appleIcon) appleIcon.href = iconDataUrl;
+        if (favIcon) favIcon.href = iconDataUrl;
+
+        // Build self-contained Web App Manifest so Chrome/Edge/Android also install cleanly
+        const manifestObj = {
+          name: 'KD Tsukimino Schedule Planner',
+          short_name: 'KD Schedule',
+          description: 'KD Tsukimino Daily Teacher Schedule Planner by T.Koi',
+          start_url: window.location.href,
+          display: 'standalone',
+          background_color: '#0f172a',
+          theme_color: '#0f172a',
+          orientation: 'any',
+          icons: [
+            { src: iconDataUrl, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+            { src: iconDataUrl, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+          ]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
+        const manifestUrl = URL.createObjectURL(manifestBlob);
+        const manifestLink = document.getElementById('pwaManifestLink');
+        if (manifestLink) manifestLink.href = manifestUrl;
+      } catch (e) {}
+    })();
+  </script>
+
   <!-- High-Res PDF & Image Export Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
@@ -53,7 +150,7 @@
       color: #0f172a;
     }
 
-    /* TOP CONTROL BAR */
+    /* TOP CONTROL BAR (Respects iOS Standalone Safe Area Notch) */
     .top-bar {
       position: sticky;
       top: 0;
@@ -61,7 +158,7 @@
       background: rgba(15, 23, 42, 0.96);
       backdrop-filter: blur(8px);
       border-bottom: 1px solid #334155;
-      padding: 8px 12px;
+      padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px 12px;
       color: #f8fafc;
     }
 
@@ -327,7 +424,7 @@
     .camera-hud {
       display: none;
       position: fixed;
-      bottom: 14px;
+      bottom: calc(14px + env(safe-area-inset-bottom, 0px));
       left: 50%;
       transform: translateX(-50%);
       z-index: 200;
@@ -353,7 +450,7 @@
     .hud-restore-dot {
       display: none;
       position: fixed;
-      bottom: 10px;
+      bottom: calc(10px + env(safe-area-inset-bottom, 0px));
       right: 10px;
       z-index: 210;
       background: rgba(15, 23, 42, 0.55);
@@ -636,7 +733,8 @@
       border-top: 1px solid #334155;
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      height: 60px;
+      height: calc(60px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     .m-nav-btn {
@@ -765,7 +863,7 @@
     /* INLINE TOAST BANNER (No browser alert/confirm) */
     .toast-msg {
       position: fixed;
-      top: 16px;
+      top: calc(16px + env(safe-area-inset-top, 0px));
       left: 50%;
       transform: translateX(-50%);
       z-index: 250;
@@ -836,7 +934,7 @@
   <!-- TOAST NOTIFICATION -->
   <div id="toastBanner" class="toast-msg no-print"></div>
 
-  <!-- FLOATING CAMERA / SCREENSHOT BAR (V13.0 FLEXIBLE ZOOM & EXPORT) -->
+  <!-- FLOATING CAMERA / SCREENSHOT BAR (V13.1 FLEXIBLE ZOOM & EXPORT) -->
   <div class="camera-hud no-print" id="cameraHud">
     <span style="color:#fbbf24; font-size:11px; font-weight:800; margin-right:2px;">📸 Camera</span>
 
@@ -871,10 +969,11 @@
   <header class="top-bar no-print">
     <div class="top-bar-inner">
       <div class="brand-box">
-        <div class="brand-icon">📅</div>
+        <div class="brand-icon" onclick="openAppInstallModal()" style="cursor:pointer;" title="Tap to view App Icon & Install Guide">KD</div>
         <div>
           <div class="brand-title">
             <span>KD Tsukimino Schedule Planner</span>
+            <span style="font-size:10px; color:#fbbf24; font-weight:700;">by T.Koi</span>
             <span id="conflictStatusBadge" class="badge-ok">✓ 0 Overlaps</span>
           </div>
           <div class="brand-sub">
@@ -923,6 +1022,10 @@
 
         <button class="btn btn-emerald" onclick="triggerPrintSheet()">
           🖨️ Print A4
+        </button>
+
+        <button class="btn" style="border-color:#fbbf24; color:#fde047;" onclick="openAppInstallModal()">
+          📲 Install App
         </button>
       </div>
     </div>
@@ -1349,7 +1452,7 @@
     </div>
   </div>
 
-  <!-- IMAGE / PDF EXPORT PREVIEW FALLBACK MODAL (For iOS Long-Press Save or Blocked Popups) -->
+  <!-- IMAGE / PDF EXPORT PREVIEW FALLBACK MODAL -->
   <div id="exportPreviewModal" class="modal-backdrop no-print" onclick="if(event.target===this) closeExportPreviewModal()">
     <div class="picker-sheet" style="max-width:680px;">
       <div class="picker-hdr">
@@ -1375,9 +1478,53 @@
     </div>
   </div>
 
+  <!-- BUILT-IN PWA & iOS/iPadOS APP INSTALL GUIDE MODAL -->
+  <div id="appInstallModal" class="modal-backdrop no-print" onclick="if(event.target===this) closeAppInstallModal()">
+    <div class="picker-sheet" style="max-width:480px;">
+      <div class="picker-hdr">
+        <div>
+          <div style="font-size:10px; color:#fbbf24; font-weight:800; text-transform:uppercase;">BUILT-IN SCHOOL APP READY</div>
+          <div style="font-size:15px; font-weight:800;">📲 Install KD Tsukimino App</div>
+        </div>
+        <button class="btn" style="background:#334155; border:none;" onclick="closeAppInstallModal()">✕ Close</button>
+      </div>
+      <div class="picker-body" style="color:#1e293b; font-size:12.5px; line-height:1.45;">
+        <div style="display:flex; align-items:center; gap:14px; background:#0f172a; color:#f8fafc; padding:12px; border-radius:12px; border:1.5px solid #334155;">
+          <img id="installModalIconPreview" alt="KD Tsukimino Icon" style="width:72px; height:72px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.5); flex-shrink:0;" />
+          <div style="flex:1;">
+            <div style="font-weight:900; font-size:14px; color:#fbbf24;">KD Tsukimino Schedule <span style="font-size:11px; color:#fde68a; font-weight:700;">by T.Koi</span></div>
+            <div style="font-size:11px; color:#cbd5e1; margin-top:2px;">512×512 Official School Icon &amp; Full-Screen App Mode Built In!</div>
+            <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+              <button id="btnNativeInstallPrompt" class="btn btn-amber" style="display:none; padding:5px 10px; font-size:11px;" onclick="triggerNativeInstallPrompt()">⚡ Install Now</button>
+              <a id="downloadSchoolIconLink" class="btn" style="padding:4px 8px; font-size:11px; text-decoration:none;" download="icon-512.png">⬇️ Save icon-512.png</a>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 12px;">
+          <div style="font-weight:800; color:#0f172a; margin-bottom:4px;">🍎 Install on iPhone &amp; iPad (Safari):</div>
+          <ol style="margin:0; padding-left:18px; display:flex; flex-direction:column; gap:4px;">
+            <li>Open your app link in <b>Safari</b>.</li>
+            <li>Tap the <b>Share</b> button (square with up arrow <b>⬆️</b>).</li>
+            <li>Scroll down and tap <b>"Add to Home Screen"</b>.</li>
+            <li>Tap <b>Add</b> — it launches full-screen with the <b>KD Tsukimino</b> icon!</li>
+          </ol>
+        </div>
+
+        <div style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 12px;">
+          <div style="font-weight:800; color:#0f172a; margin-bottom:4px;">🤖 Install on Android / Desktop Chrome:</div>
+          <ol style="margin:0; padding-left:18px; display:flex; flex-direction:column; gap:4px;">
+            <li>Tap the browser menu (<b>⋮</b>) or the address-bar install icon.</li>
+            <li>Select <b>"Install app"</b> or <b>"Add to Home screen"</b>.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     /********************************************************************
-     * 1. STRICT CONSTANTS & TIMETABLE DEFINITIONS (V13.0)
+     * 1. STRICT CONSTANTS & TIMETABLE DEFINITIONS (V13.1)
      ********************************************************************/
     const CORE_DIRECTORS = ['Kato', 'Coulter'];
     const LEAD_ASSIST_TEACHERS = ['Koi', 'Thomas', 'Anna', 'Mitchelle'];
@@ -2035,7 +2182,6 @@
       if (cameraState.active) {
         cameraState.mode = 'fit-screen';
         updateCameraModeButtons();
-        // Wait a frame so #desktopSheetWrapper is visible even if coming from Phone Cards mode
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             applyCameraTransform();
@@ -2094,7 +2240,6 @@
       requestAnimationFrame(() => applyCameraTransform());
     }
 
-    // Double-tap anywhere in Screenshot Mode restores the HUD if hidden
     document.addEventListener('dblclick', () => {
       if (document.body.classList.contains('screenshot-mode') && document.body.classList.contains('hide-hud')) {
         toggleHudClean(false);
@@ -2107,7 +2252,6 @@
       const scrollBox = document.getElementById('paperScrollBox');
       if (!sheet || !scrollBox) return;
 
-      // Reset transform temporarily to measure true natural dimensions
       sheet.style.transform = 'none';
       const naturalW = 1460;
       const naturalH = Math.max(sheet.scrollHeight || 0, sheet.offsetHeight || 0, 920);
@@ -2133,7 +2277,6 @@
         sheet.style.margin = '0';
         scrollBox.style.height = `${Math.ceil(naturalH * cameraState.scale + 90)}px`;
       } else {
-        // Manual zoom + free scroll/pan
         scrollBox.classList.remove('centered-fit');
         sheet.style.transformOrigin = 'top left';
         sheet.style.transform = `scale(${cameraState.scale})`;
@@ -2152,7 +2295,6 @@
       return `KD_Tsukimino_Schedule_${mm}_${dd}_${day}`;
     }
 
-    // Render #paperSheet to a high-res 2x HTMLCanvasElement with zero clipping or transforms
     async function renderSheetToCanvas() {
       if (typeof html2canvas === 'undefined') {
         showToast('⏳ Loading export engine... please try again in 1 second.');
@@ -2166,7 +2308,6 @@
       const prevOrigin = sheet.style.transformOrigin;
       const prevMargin = sheet.style.margin;
 
-      // Ensure sheet is visible and unscaled for 100% crisp full-resolution capture
       wrapper.style.display = 'block';
       sheet.style.transform = 'none';
       sheet.style.transformOrigin = 'top left';
@@ -2206,7 +2347,6 @@
         cameraState.lastDataUrl = dataUrl;
         const filename = `${getScheduleFilenameBase()}.png`;
 
-        // Trigger direct download
         const link = document.createElement('a');
         link.href = dataUrl;
         link.download = filename;
@@ -2214,7 +2354,6 @@
         link.click();
         document.body.removeChild(link);
 
-        // Also open the preview modal so mobile/iOS users can long-press "Save to Photos"
         openExportPreviewModal(dataUrl, filename, 'PNG Image Saved! (Or Long-Press Below to Save to Photos)');
         showToast('✅ High-Res PNG Ready!');
       } catch (err) {
@@ -2232,7 +2371,6 @@
 
         if (window.jspdf && window.jspdf.jsPDF) {
           const { jsPDF } = window.jspdf;
-          // A4 Landscape in mm: 297 x 210
           const pdf = new jsPDF({
             orientation: 'landscape',
             unit: 'mm',
@@ -2259,7 +2397,6 @@
           pdf.save(filename);
           showToast('✅ A4 Landscape PDF Downloaded!');
         } else {
-          // Fallback if jsPDF CDN was blocked
           openExportPreviewModal(imgData, `${getScheduleFilenameBase()}.png`, 'Save Schedule Image / Print to PDF');
         }
       } catch (err) {
@@ -2322,7 +2459,6 @@
       const prevTransform = sheet ? sheet.style.transform : '';
       const prevDisplay = wrapper ? wrapper.style.display : '';
 
-      // Reset any screenshot scale before invoking browser print
       if (wrapper) wrapper.style.display = 'block';
       if (sheet) sheet.style.transform = 'none';
 
@@ -2343,6 +2479,43 @@
           }, 400);
         }
       }, 120);
+    }
+
+    /********************************************************************
+     * 6B. BUILT-IN PWA & iOS/iPadOS INSTALL MODAL CONTROLLER
+     ********************************************************************/
+    let deferredInstallPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      const btn = document.getElementById('btnNativeInstallPrompt');
+      if (btn) btn.style.display = 'inline-flex';
+    });
+
+    function openAppInstallModal() {
+      const img = document.getElementById('installModalIconPreview');
+      const dl = document.getElementById('downloadSchoolIconLink');
+      if (window.__KD_APP_ICON_DATA_URL) {
+        if (img) img.src = window.__KD_APP_ICON_DATA_URL;
+        if (dl) dl.href = window.__KD_APP_ICON_DATA_URL;
+      }
+      const modal = document.getElementById('appInstallModal');
+      if (modal) modal.classList.add('open');
+    }
+
+    function closeAppInstallModal() {
+      const modal = document.getElementById('appInstallModal');
+      if (modal) modal.classList.remove('open');
+    }
+
+    async function triggerNativeInstallPrompt() {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      const btn = document.getElementById('btnNativeInstallPrompt');
+      if (btn) btn.style.display = 'none';
     }
 
     /********************************************************************
@@ -2374,9 +2547,10 @@
         <div class="m-card" style="background:#1e293b; color:#fff; border-color:#334155; padding:10px;">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
             <div style="font-size:12px; font-weight:800;">📅 KD Tsukimino Schedule Planner</div>
-            <div style="display:flex; gap:6px;">
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
               <button class="btn btn-indigo" onclick="autoFillSchedule()">🎲 Auto-Fill</button>
               <button class="btn btn-camera" onclick="toggleScreenshotMode(true)">📸 Full Paper</button>
+              <button class="btn" style="border-color:#fbbf24; color:#fde047;" onclick="openAppInstallModal()">📲 App</button>
             </div>
           </div>
         </div>
@@ -2763,7 +2937,6 @@
       const currentVal = (state.slots[slotId] || '').trim();
       const grid = document.getElementById('pickerOptionsGrid');
 
-      // Use compact 7-column calendar layout when picking 1-31 Day
       grid.classList.toggle('calendar-31-grid', info.type === 'calendar_31');
 
       if (!info.options || info.options.length === 0) {
@@ -2897,7 +3070,7 @@
     }
 
     /********************************************************************
-     * 9. AUTO-FILL ENGINE (V12.4)
+     * 9. AUTO-FILL ENGINE (V13.1)
      ********************************************************************/
     function shuffleArray(arr) {
       const copy = [...arr];
