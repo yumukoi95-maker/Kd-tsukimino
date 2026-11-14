@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>KD Tsukimino Schedule Planner V12.4</title>
+  <title>KD Tsukimino Schedule Planner V13.0</title>
+  <!-- High-Res PDF & Image Export Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
   <style>
     :root {
       --bg-app: #0f172a;
@@ -281,10 +284,14 @@
 
     /* SCREENSHOT / CAMERA FULL-SHEET PREVIEW OVERLAY */
     body.screenshot-mode {
-      background: #000000 !important;
+      background: #090d16 !important;
       padding: 0 !important;
       margin: 0 !important;
-      overflow-x: hidden;
+      overflow: auto !important;
+    }
+
+    body.screenshot-mode.light-backdrop {
+      background: #f1f5f9 !important;
     }
 
     body.screenshot-mode .top-bar,
@@ -295,38 +302,88 @@
 
     body.screenshot-mode #desktopSheetWrapper {
       display: block !important;
-      max-width: 100vw !important;
+      max-width: none !important;
+      width: 100% !important;
       margin: 0 !important;
       padding: 0 !important;
     }
 
     body.screenshot-mode .paper-scroll {
-      overflow: hidden !important;
-      padding: 0 !important;
+      overflow: auto !important;
+      padding: 8px !important;
       display: flex;
-      justify-content: center;
+      justify-content: flex-start;
       align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    body.screenshot-mode .paper-scroll.centered-fit {
+      justify-content: center;
+      align-items: center;
+      overflow: hidden !important;
+      padding: 4px !important;
     }
 
     .camera-hud {
       display: none;
       position: fixed;
       bottom: 14px;
-      right: 14px;
+      left: 50%;
+      transform: translateX(-50%);
       z-index: 200;
-      background: rgba(15, 23, 42, 0.88);
-      backdrop-filter: blur(8px);
-      border: 1px solid #475569;
-      border-radius: 999px;
-      padding: 6px 12px;
-      gap: 8px;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(10px);
+      border: 1.5px solid #475569;
+      border-radius: 16px;
+      padding: 8px 12px;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
       align-items: center;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.75);
+      max-width: 96vw;
     }
 
     body.screenshot-mode .camera-hud { display: inline-flex; }
-    body.screenshot-mode.hide-hud .camera-hud { opacity: 0.08; }
+    body.screenshot-mode.hide-hud .camera-hud { display: none !important; }
     body.screenshot-mode .slot-caret { display: none !important; }
+    body.screenshot-mode .slot-box.slot-empty::before { content: "" !important; }
+
+    /* Clean-Capture Restore Pill when HUD is hidden */
+    .hud-restore-dot {
+      display: none;
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      z-index: 210;
+      background: rgba(15, 23, 42, 0.55);
+      color: #f8fafc;
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+    }
+    body.screenshot-mode.hide-hud .hud-restore-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Clean Capture Mode class used during html2canvas PDF/PNG generation */
+    .export-clean-capture .slot-caret {
+      display: none !important;
+    }
+    .export-clean-capture .slot-box.slot-empty::before {
+      content: "" !important;
+    }
+    .export-clean-capture.paper-sheet {
+      box-shadow: none !important;
+      transform: none !important;
+      margin: 0 !important;
+    }
 
     /* TABLE & CELL BORDERS */
     .col-pane {
@@ -729,14 +786,22 @@
         size: A4 landscape;
         margin: 4mm;
       }
-      body {
+      html, body {
         background: #ffffff !important;
         padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
       .no-print,
       .top-bar,
       .mobile-nav,
       .camera-hud,
+      .hud-restore-dot,
+      .modal-backdrop,
       #mobileViewContainer {
         display: none !important;
       }
@@ -744,13 +809,22 @@
         display: block !important;
         margin: 0 !important;
         padding: 0 !important;
-      }
-      .paper-scroll { overflow: visible !important; }
-      .paper-sheet {
         width: 100% !important;
-        min-width: 0 !important;
+        max-width: none !important;
+      }
+      .paper-scroll {
+        overflow: visible !important;
+        padding: 0 !important;
+        height: auto !important;
+        display: block !important;
+      }
+      .paper-sheet {
+        width: 1460px !important;
+        min-width: 1460px !important;
         box-shadow: none !important;
-        transform: none !important;
+        margin: 0 auto !important;
+        transform-origin: top left !important;
+        zoom: 0.72;
       }
       .slot-caret { display: none !important; }
       .slot-box.slot-empty::before { content: "" !important; }
@@ -762,13 +836,36 @@
   <!-- TOAST NOTIFICATION -->
   <div id="toastBanner" class="toast-msg no-print"></div>
 
-  <!-- FLOATING CAMERA / SCREENSHOT BAR -->
+  <!-- FLOATING CAMERA / SCREENSHOT BAR (V13.0 FLEXIBLE ZOOM & EXPORT) -->
   <div class="camera-hud no-print" id="cameraHud">
-    <span style="color:#f8fafc; font-size:11px; font-weight:800;">📸 KD Tsukimino Camera View</span>
-    <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="toggleHudOpacity()">👁️ Hide Bar</button>
-    <button class="btn btn-emerald" style="padding:4px 8px; font-size:11px;" onclick="window.print()">🖨️ Print / PDF</button>
-    <button class="btn btn-danger" style="padding:4px 10px; font-size:11px;" onclick="toggleScreenshotMode(false)">✖ Exit</button>
+    <span style="color:#fbbf24; font-size:11px; font-weight:800; margin-right:2px;">📸 Camera</span>
+
+    <!-- 3 Zoom Presets -->
+    <div class="mode-switch" style="background:#020617;">
+      <button id="btnCamFitScreen" class="active" onclick="setCameraZoomMode('fit-screen')">📐 Fit Screen</button>
+      <button id="btnCamFitWidth" onclick="setCameraZoomMode('fit-width')">↔️ Fit Width</button>
+      <button id="btnCamManual" onclick="setCameraZoomMode('manual')">🔍 Zoom</button>
+    </div>
+
+    <!-- Manual Zoom Controls -->
+    <div style="display:inline-flex; align-items:center; gap:4px; background:#1e293b; padding:2px 6px; border-radius:8px; border:1px solid #334155;">
+      <button class="btn" style="padding:2px 7px; font-size:12px;" onclick="adjustCameraZoom(-0.08)">−</button>
+      <span id="camZoomLabel" style="color:#f8fafc; font-size:11px; font-weight:800; min-width:38px; text-align:center;">100%</span>
+      <button class="btn" style="padding:2px 7px; font-size:12px;" onclick="adjustCameraZoom(0.08)">+</button>
+    </div>
+
+    <button class="btn" style="padding:5px 8px; font-size:11px;" onclick="toggleCameraBackdrop()" id="btnCamBg">🌗 Bg</button>
+    <button class="btn" style="padding:5px 9px; font-size:11px; background:#334155;" onclick="toggleHudClean(true)" title="Hide toolbar for clean screenshot">👁️ Clean Screen</button>
+    <button class="btn btn-amber" style="padding:5px 9px; font-size:11px;" onclick="exportSchedulePDF()">📄 Save PDF</button>
+    <button class="btn btn-indigo" style="padding:5px 9px; font-size:11px;" onclick="exportSchedulePNG()">🖼️ Save PNG</button>
+    <button class="btn btn-emerald" style="padding:5px 9px; font-size:11px;" onclick="triggerPrintSheet()">🖨️ Print</button>
+    <button class="btn btn-danger" style="padding:5px 10px; font-size:11px;" onclick="toggleScreenshotMode(false)">✖ Exit</button>
   </div>
+
+  <!-- Tiny Restore Pill when Clean Screen is active -->
+  <button class="hud-restore-dot no-print" id="hudRestoreDot" onclick="toggleHudClean(false)">
+    👁️ Show Controls
+  </button>
 
   <!-- TOP BAR -->
   <header class="top-bar no-print">
@@ -816,7 +913,15 @@
           ✍️ Marker: ON
         </button>
 
-        <button class="btn btn-emerald" onclick="window.print()">
+        <button class="btn btn-amber" id="btnTopSavePDF" onclick="exportSchedulePDF()">
+          📄 Save PDF
+        </button>
+
+        <button class="btn" id="btnTopSavePNG" onclick="exportSchedulePNG()">
+          🖼️ Save PNG
+        </button>
+
+        <button class="btn btn-emerald" onclick="triggerPrintSheet()">
           🖨️ Print A4
         </button>
       </div>
@@ -1244,9 +1349,35 @@
     </div>
   </div>
 
+  <!-- IMAGE / PDF EXPORT PREVIEW FALLBACK MODAL (For iOS Long-Press Save or Blocked Popups) -->
+  <div id="exportPreviewModal" class="modal-backdrop no-print" onclick="if(event.target===this) closeExportPreviewModal()">
+    <div class="picker-sheet" style="max-width:680px;">
+      <div class="picker-hdr">
+        <div>
+          <div style="font-size:10px; color:#fbbf24; font-weight:800; text-transform:uppercase;">HIGH-RES SCHEDULE READY</div>
+          <div id="exportModalTitle" style="font-size:15px; font-weight:800;">Save or Share Schedule</div>
+        </div>
+        <button class="btn" style="background:#334155; border:none;" onclick="closeExportPreviewModal()">✕ Close</button>
+      </div>
+      <div class="picker-body" style="align-items:center; text-align:center;">
+        <div style="font-size:12px; color:#334155; font-weight:700;">
+          📱 On iPhone / iPad: <b>Long-press the schedule image below</b> and tap <b>"Save to Photos"</b> or use the download buttons:
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center; width:100%;">
+          <a id="exportDownloadLink" class="btn btn-emerald" style="text-decoration:none; padding:8px 14px;" download="KD_Tsukimino_Schedule.png">⬇️ Download File</a>
+          <button class="btn btn-amber" onclick="exportSchedulePDF()">📄 Download A4 PDF</button>
+          <button class="btn btn-indigo" onclick="triggerPrintFromDataUrl()">🖨️ Open Print Window</button>
+        </div>
+        <div style="max-height:55vh; overflow:auto; border:2px solid #0f172a; border-radius:8px; background:#e2e8f0; padding:6px; width:100%;">
+          <img id="exportPreviewImg" alt="Schedule Export Preview" style="width:100%; height:auto; display:block; border-radius:4px;" />
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     /********************************************************************
-     * 1. STRICT CONSTANTS & TIMETABLE DEFINITIONS (V12.4)
+     * 1. STRICT CONSTANTS & TIMETABLE DEFINITIONS (V13.0)
      ********************************************************************/
     const CORE_DIRECTORS = ['Kato', 'Coulter'];
     const LEAD_ASSIST_TEACHERS = ['Koi', 'Thomas', 'Anna', 'Mitchelle'];
@@ -1883,46 +2014,335 @@
     }
 
     /********************************************************************
-     * 6. SCREENSHOT / CAMERA FULL-PAPER PREVIEW MODE
+     * 6. FLEXIBLE SCREENSHOT / CAMERA VIEW & PRINT / PDF / PNG SYSTEM
      ********************************************************************/
+    let cameraState = {
+      active: false,
+      mode: 'fit-screen', // 'fit-screen' | 'fit-width' | 'manual'
+      scale: 1,
+      lightBg: false,
+      lastDataUrl: null
+    };
+
     function toggleScreenshotMode(enable) {
-      document.body.classList.toggle('screenshot-mode', enable);
+      cameraState.active = Boolean(enable);
+      document.body.classList.toggle('screenshot-mode', cameraState.active);
       document.body.classList.remove('hide-hud');
-      if (enable) {
-        fitPaperForScreenshot();
-        window.addEventListener('resize', fitPaperForScreenshot);
+
+      const sheet = document.getElementById('paperSheet');
+      const scrollBox = document.getElementById('paperScrollBox');
+
+      if (cameraState.active) {
+        cameraState.mode = 'fit-screen';
+        updateCameraModeButtons();
+        // Wait a frame so #desktopSheetWrapper is visible even if coming from Phone Cards mode
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            applyCameraTransform();
+          });
+        });
+        window.addEventListener('resize', applyCameraTransform);
       } else {
-        window.removeEventListener('resize', fitPaperForScreenshot);
-        const sheet = document.getElementById('paperSheet');
-        const scrollBox = document.getElementById('paperScrollBox');
-        if (sheet) sheet.style.transform = '';
-        if (scrollBox) scrollBox.style.height = '';
+        window.removeEventListener('resize', applyCameraTransform);
+        if (sheet) {
+          sheet.style.transform = '';
+          sheet.style.transformOrigin = '';
+          sheet.style.margin = '';
+        }
+        if (scrollBox) {
+          scrollBox.style.height = '';
+          scrollBox.style.width = '';
+          scrollBox.classList.remove('centered-fit');
+        }
+        refreshUI();
       }
     }
 
-    function toggleHudOpacity() {
-      document.body.classList.toggle('hide-hud');
+    function setCameraZoomMode(mode) {
+      cameraState.mode = mode;
+      updateCameraModeButtons();
+      applyCameraTransform();
     }
 
-    function fitPaperForScreenshot() {
+    function adjustCameraZoom(delta) {
+      cameraState.mode = 'manual';
+      updateCameraModeButtons();
+      cameraState.scale = Math.max(0.22, Math.min(1.5, Math.round((cameraState.scale + delta) * 100) / 100));
+      applyCameraTransform();
+    }
+
+    function updateCameraModeButtons() {
+      const m = cameraState.mode;
+      const bScreen = document.getElementById('btnCamFitScreen');
+      const bWidth = document.getElementById('btnCamFitWidth');
+      const bManual = document.getElementById('btnCamManual');
+      if (bScreen) bScreen.classList.toggle('active', m === 'fit-screen');
+      if (bWidth) bWidth.classList.toggle('active', m === 'fit-width');
+      if (bManual) bManual.classList.toggle('active', m === 'manual');
+    }
+
+    function toggleCameraBackdrop() {
+      cameraState.lightBg = !cameraState.lightBg;
+      document.body.classList.toggle('light-backdrop', cameraState.lightBg);
+    }
+
+    function toggleHudClean(hide) {
+      document.body.classList.toggle('hide-hud', Boolean(hide));
+      if (hide) {
+        showToast('📸 Clean Screen active — Double-tap anywhere or tap bottom-right to restore');
+      }
+      requestAnimationFrame(() => applyCameraTransform());
+    }
+
+    // Double-tap anywhere in Screenshot Mode restores the HUD if hidden
+    document.addEventListener('dblclick', () => {
+      if (document.body.classList.contains('screenshot-mode') && document.body.classList.contains('hide-hud')) {
+        toggleHudClean(false);
+      }
+    });
+
+    function applyCameraTransform() {
       if (!document.body.classList.contains('screenshot-mode')) return;
       const sheet = document.getElementById('paperSheet');
       const scrollBox = document.getElementById('paperScrollBox');
       if (!sheet || !scrollBox) return;
 
+      // Reset transform temporarily to measure true natural dimensions
       sheet.style.transform = 'none';
       const naturalW = 1460;
-      const naturalH = sheet.offsetHeight || 960;
+      const naturalH = Math.max(sheet.scrollHeight || 0, sheet.offsetHeight || 0, 920);
+
+      const hudHidden = document.body.classList.contains('hide-hud');
       const vw = window.innerWidth;
-      const vh = window.innerHeight;
+      const vh = window.innerHeight - (hudHidden ? 8 : 68);
 
-      const scaleX = (vw - 8) / naturalW;
-      const scaleY = (vh - 8) / naturalH;
-      const scale = Math.min(scaleX, scaleY, 1);
+      if (cameraState.mode === 'fit-screen') {
+        const scaleX = (vw - 12) / naturalW;
+        const scaleY = (vh - 12) / naturalH;
+        cameraState.scale = Math.max(0.2, Math.min(scaleX, scaleY, 1.15));
+        scrollBox.classList.add('centered-fit');
+        sheet.style.transformOrigin = 'top center';
+        sheet.style.transform = `scale(${cameraState.scale})`;
+        sheet.style.margin = '0 auto';
+        scrollBox.style.height = `${Math.ceil(naturalH * cameraState.scale + (hudHidden ? 12 : 74))}px`;
+      } else if (cameraState.mode === 'fit-width') {
+        cameraState.scale = Math.max(0.22, (vw - 16) / naturalW);
+        scrollBox.classList.remove('centered-fit');
+        sheet.style.transformOrigin = 'top left';
+        sheet.style.transform = `scale(${cameraState.scale})`;
+        sheet.style.margin = '0';
+        scrollBox.style.height = `${Math.ceil(naturalH * cameraState.scale + 90)}px`;
+      } else {
+        // Manual zoom + free scroll/pan
+        scrollBox.classList.remove('centered-fit');
+        sheet.style.transformOrigin = 'top left';
+        sheet.style.transform = `scale(${cameraState.scale})`;
+        sheet.style.margin = '0';
+        scrollBox.style.height = `${Math.ceil(naturalH * cameraState.scale + 90)}px`;
+      }
 
-      sheet.style.transformOrigin = 'top center';
-      sheet.style.transform = `scale(${scale})`;
-      scrollBox.style.height = `${Math.ceil(naturalH * scale + 8)}px`;
+      const lbl = document.getElementById('camZoomLabel');
+      if (lbl) lbl.textContent = `${Math.round(cameraState.scale * 100)}%`;
+    }
+
+    function getScheduleFilenameBase() {
+      const mm = (state.slots['meta_month'] || 'M').trim();
+      const dd = (state.slots['meta_day'] || 'D').trim();
+      const day = state.weekday || 'Day';
+      return `KD_Tsukimino_Schedule_${mm}_${dd}_${day}`;
+    }
+
+    // Render #paperSheet to a high-res 2x HTMLCanvasElement with zero clipping or transforms
+    async function renderSheetToCanvas() {
+      if (typeof html2canvas === 'undefined') {
+        showToast('⏳ Loading export engine... please try again in 1 second.');
+        throw new Error('html2canvas not loaded');
+      }
+
+      const wrapper = document.getElementById('desktopSheetWrapper');
+      const sheet = document.getElementById('paperSheet');
+      const prevWrapperDisplay = wrapper.style.display;
+      const prevTransform = sheet.style.transform;
+      const prevOrigin = sheet.style.transformOrigin;
+      const prevMargin = sheet.style.margin;
+
+      // Ensure sheet is visible and unscaled for 100% crisp full-resolution capture
+      wrapper.style.display = 'block';
+      sheet.style.transform = 'none';
+      sheet.style.transformOrigin = 'top left';
+      sheet.style.margin = '0';
+      sheet.classList.add('export-clean-capture');
+
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+      try {
+        const canvas = await html2canvas(sheet, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#fdfdfb',
+          width: 1460,
+          windowWidth: 1500,
+          scrollX: 0,
+          scrollY: 0
+        });
+        return canvas;
+      } finally {
+        sheet.classList.remove('export-clean-capture');
+        sheet.style.transform = prevTransform;
+        sheet.style.transformOrigin = prevOrigin;
+        sheet.style.margin = prevMargin;
+        wrapper.style.display = prevWrapperDisplay;
+        if (document.body.classList.contains('screenshot-mode')) {
+          applyCameraTransform();
+        }
+      }
+    }
+
+    async function exportSchedulePNG() {
+      try {
+        showToast('🖼️ Generating High-Res Schedule Image...');
+        const canvas = await renderSheetToCanvas();
+        const dataUrl = canvas.toDataURL('image/png');
+        cameraState.lastDataUrl = dataUrl;
+        const filename = `${getScheduleFilenameBase()}.png`;
+
+        // Trigger direct download
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Also open the preview modal so mobile/iOS users can long-press "Save to Photos"
+        openExportPreviewModal(dataUrl, filename, 'PNG Image Saved! (Or Long-Press Below to Save to Photos)');
+        showToast('✅ High-Res PNG Ready!');
+      } catch (err) {
+        showToast('⚠️ Could not generate PNG. Try Screenshot View.');
+      }
+    }
+
+    async function exportSchedulePDF() {
+      try {
+        showToast('📄 Building A4 Landscape PDF...');
+        const canvas = await renderSheetToCanvas();
+        const imgData = canvas.toDataURL('image/jpeg', 0.96);
+        cameraState.lastDataUrl = imgData;
+        const filename = `${getScheduleFilenameBase()}.pdf`;
+
+        if (window.jspdf && window.jspdf.jsPDF) {
+          const { jsPDF } = window.jspdf;
+          // A4 Landscape in mm: 297 x 210
+          const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'mm',
+            format: 'a4',
+            compress: true
+          });
+
+          const pageW = 297;
+          const pageH = 210;
+          const margin = 4;
+          const maxW = pageW - margin * 2;
+          const maxH = pageH - margin * 2;
+
+          const imgW = canvas.width;
+          const imgH = canvas.height;
+          const ratio = Math.min(maxW / imgW, maxH / imgH);
+
+          const renderW = imgW * ratio;
+          const renderH = imgH * ratio;
+          const offsetX = (pageW - renderW) / 2;
+          const offsetY = (pageH - renderH) / 2;
+
+          pdf.addImage(imgData, 'JPEG', offsetX, offsetY, renderW, renderH);
+          pdf.save(filename);
+          showToast('✅ A4 Landscape PDF Downloaded!');
+        } else {
+          // Fallback if jsPDF CDN was blocked
+          openExportPreviewModal(imgData, `${getScheduleFilenameBase()}.png`, 'Save Schedule Image / Print to PDF');
+        }
+      } catch (err) {
+        showToast('⚠️ PDF generation error — opening Print A4 instead.');
+        triggerPrintSheet();
+      }
+    }
+
+    function openExportPreviewModal(dataUrl, filename, titleText) {
+      const modal = document.getElementById('exportPreviewModal');
+      const img = document.getElementById('exportPreviewImg');
+      const link = document.getElementById('exportDownloadLink');
+      const title = document.getElementById('exportModalTitle');
+      if (title && titleText) title.textContent = titleText;
+      if (img) img.src = dataUrl;
+      if (link) {
+        link.href = dataUrl;
+        link.download = filename;
+      }
+      if (modal) modal.classList.add('open');
+    }
+
+    function closeExportPreviewModal() {
+      const modal = document.getElementById('exportPreviewModal');
+      if (modal) modal.classList.remove('open');
+    }
+
+    function triggerPrintFromDataUrl() {
+      if (!cameraState.lastDataUrl) {
+        triggerPrintSheet();
+        return;
+      }
+      const w = window.open('', '_blank');
+      if (w) {
+        w.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>${getScheduleFilenameBase()}</title>
+            <style>
+              @page { size: A4 landscape; margin: 4mm; }
+              body { margin: 0; display: flex; justify-content: center; align-items: center; background: #fff; }
+              img { max-width: 100%; max-height: 98vh; object-fit: contain; }
+            </style>
+          </head>
+          <body onload="setTimeout(function(){ window.print(); }, 250);">
+            <img src="${cameraState.lastDataUrl}" />
+          </body>
+          </html>
+        `);
+        w.document.close();
+      } else {
+        window.print();
+      }
+    }
+
+    async function triggerPrintSheet() {
+      const sheet = document.getElementById('paperSheet');
+      const wrapper = document.getElementById('desktopSheetWrapper');
+      const prevTransform = sheet ? sheet.style.transform : '';
+      const prevDisplay = wrapper ? wrapper.style.display : '';
+
+      // Reset any screenshot scale before invoking browser print
+      if (wrapper) wrapper.style.display = 'block';
+      if (sheet) sheet.style.transform = 'none';
+
+      showToast('🖨️ Preparing A4 Landscape Print...');
+
+      setTimeout(() => {
+        try {
+          window.print();
+        } catch (e) {
+          exportSchedulePDF();
+        } finally {
+          setTimeout(() => {
+            if (wrapper) wrapper.style.display = prevDisplay;
+            if (sheet) sheet.style.transform = prevTransform;
+            if (document.body.classList.contains('screenshot-mode')) {
+              applyCameraTransform();
+            }
+          }, 400);
+        }
+      }, 120);
     }
 
     /********************************************************************
